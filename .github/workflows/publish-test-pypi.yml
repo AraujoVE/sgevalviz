@@ -23,11 +23,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install build twine
 
-      - name: Change package name for Test PyPI
+      - name: Change package name and remove original script
         run: |
           sed -i 's/^name = "sgevalviz"/name = "sgevalviz-test"/' pyproject.toml
-          sed -i 's/sgevalviz = \["configs\/\*\.json"\]/sgevalviz-test = ["configs\/\*\.json"]/' pyproject.toml
-          sed -i 's/sgevalviz = "sgevalviz.cli:main"/sgevalviz-test = "sgevalviz.cli:main"/' pyproject.toml
+          sed -i '/^sgevalviz = /d' pyproject.toml
 
       - name: Build package
         run: python -m build
