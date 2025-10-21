@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sgevalviz"
-version = "0.1.7"
+version = "0.1.8"
 description = "An improved version of sgeval with visualization and statistical analysis tools for GTFS bioinformatics data."
 authors = [
     { name = "Vinícius Araújo" }
