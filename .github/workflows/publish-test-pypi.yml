@@ -26,6 +26,7 @@ jobs:
       - name: Change package name for Test PyPI
         run: |
           sed -i 's/^name = "sgevalviz"/name = "sgevalviz-test"/' pyproject.toml
+          sed -i 's/^sgevalviz = "sgevalviz.cli:main"/sgevalviz-test = "sgevalviz.cli:main"/' pyproject.toml
 
       - name: Build package
         run: python -m build
