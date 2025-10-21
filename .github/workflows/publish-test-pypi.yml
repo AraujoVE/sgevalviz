@@ -23,13 +23,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install build twine
 
-      - name: Change package name and remove original script
+      - name: Prepare pyproject.toml for Test PyPI
         run: |
           sed -i 's/^name = "sgevalviz"/name = "sgevalviztest"/' pyproject.toml
           sed -i '/^sgevalviz = /d' pyproject.toml
+          sed -i 's/^sgevalviz = /sgevalviztest = /' pyproject.toml
 
       - name: Build package
-        run: python -m build
+        run: |
+          rm -rf dist/*
+          python -m build
 
       - name: Publish to Test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
