@@ -22,7 +22,7 @@ dependencies = [
 # Permite rodar o comando `sgevalviz` no terminal
 [project.scripts]
 sgevalviz = "sgevalviz.cli:main"
-sgevalviz-test = "sgevalviz.cli_test:main_wrapper"
+sgevalviztest = "sgevalviz.cli_test:main_wrapper"
 
 # Metadados opcionais, mas úteis pro PyPI
 [project.urls]
