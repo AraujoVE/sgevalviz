@@ -1,0 +1,52 @@
+{
+    "seqname" : {
+        "from_pattern": "",
+        "to_pattern": "",
+        "valid_pattern": ""
+    },
+    "source" : {
+        "from_pattern": "",
+        "to_pattern": "",
+        "valid_pattern": ""
+    },
+    "featureType" : {
+        "from_pattern": "",
+        "to_pattern": "",
+        "valid_pattern": ""
+    },
+    "startPos" : {
+        "from_pattern": "",
+        "to_pattern": "",
+        "valid_pattern": ""
+    },
+    "endPos" : {
+        "from_pattern": "",
+        "to_pattern": "",
+        "valid_pattern": ""
+    },
+    "score" : {
+        "from_pattern": "",
+        "to_pattern": "",
+        "valid_pattern": ""
+    },
+    "strand" : {
+        "from_pattern": "",
+        "to_pattern": "",
+        "valid_pattern": ""
+    },
+    "frame" : {
+        "from_pattern": "",
+        "to_pattern": "",
+        "valid_pattern": ""
+    },
+    "geneId" : {
+        "from_pattern": "",
+        "to_pattern": "",
+        "valid_pattern": ""
+    },
+    "transcriptId" : {
+        "from_pattern": "",
+        "to_pattern": "",
+        "valid_pattern": ""
+    }
+}

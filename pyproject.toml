@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sgevalviz"
+version = "0.1.0"
+description = "An improved version of sgeval with visualization and statistical analysis tools for GTFS bioinformatics data."
+authors = [
+    { name = "Vinícius Araújo" }
+]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+
+dependencies = [
+    "pandas>=2.0",
+    "matplotlib>=3.7",
+    "numpy>=1.24",
+]
+
+# Permite rodar o comando `sgevalviz` no terminal
+[project.scripts]
+sgevalviz = "sgevalviz.cli:main"
+
+# Metadados opcionais, mas úteis pro PyPI
+[project.urls]
+Homepage = "https://github.com/AraujoVE/sgevalviz"
+Repository = "https://github.com/AraujoVE/sgevalviz"
+Issues = "https://github.com/AraujoVE/sgevalviz/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.package-data]
+sgevalviz = ["configs/*.json"]
