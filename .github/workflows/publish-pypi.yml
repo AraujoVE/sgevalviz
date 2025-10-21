@@ -27,8 +27,14 @@ jobs:
         run: |
           sed -i '/^sgevalviztest = /d' pyproject.toml
 
+      - name: Prepare pyproject.toml for Test PyPI
+        run: |
+          sed -i '/^sgevalviztest = "sgevalviz.cli_test:main_wrapper"/d' pyproject.toml
+
       - name: Build package
-        run: python -m build
+        run: |
+          rm -rf dist/*
+          python -m build
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

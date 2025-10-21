@@ -3,8 +3,8 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sgevalviztest"
-version = "0.1.10"
+name = "sgevalviz"
+version = "0.1.11"
 description = "An improved version of sgeval with visualization and statistical analysis tools for GTFS bioinformatics data."
 authors = [
     { name = "Vinícius Araújo" }
@@ -21,6 +21,7 @@ dependencies = [
 
 # Permite rodar o comando `sgevalviz` no terminal
 [project.scripts]
+sgevalviz = "sgevalviz.cli:main"
 sgevalviztest = "sgevalviz.cli_test:main_wrapper"
 
 # Metadados opcionais, mas úteis pro PyPI
@@ -33,7 +34,7 @@ Issues = "https://github.com/AraujoVE/sgevalviz/issues"
 where = ["src"]
 
 [tool.setuptools.package-dir]
-sgevalviztest = "src/sgevalviz"
+sgevalviz = "src/sgevalviz"
 
 [tool.setuptools.package-data]
-sgevalviztest = ["configs/*.json"]
+sgevalviz = ["configs/*.json"]
