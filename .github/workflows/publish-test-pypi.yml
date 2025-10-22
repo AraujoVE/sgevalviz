@@ -27,7 +27,6 @@ jobs:
         run: |
           sed -i 's/^name = "sgevalviz"/name = "sgevalviztest"/' pyproject.toml
           sed -i '/^sgevalviz = "sgevalviz.cli:main"/d' pyproject.toml
-          sed -i 's/^sgevalviz = \[/sgevalviztest = [/' pyproject.toml
 
       - name: Build package
         run: |
