@@ -361,14 +361,14 @@ def computeNucleotideSet(df):
 
     return df, nucleotidesSet
 
-def writeNucleotides(chromosomeFolder):
+def writeNucleotides(saveFilesBasePath,chromosomeFolder):
     recallChromosomeCsv = f"{chromosomeFolder}/recallStatistics.csv"
     recallNucleotidesCsv = f"{chromosomeFolder}/recallNucleotides.csv"
-    recallCsv = "chromosomeCSVs/recallStatistics.csv"
+    recallCsv = f"{saveFilesBasePath}/chromosomeCSVs/recallStatistics.csv"
 
     precisionChromosomeCsv = f"{chromosomeFolder}/precisionStatistics.csv"
     precisionNucleotidesCsv = f"{chromosomeFolder}/precisionNucleotides.csv"
-    precisionCsv = "chromosomeCSVs/precisionStatistics.csv"
+    precisionCsv = f"{saveFilesBasePath}/chromosomeCSVs/precisionStatistics.csv"
 
     
     recallNucleotideDf = pd.read_csv(recallNucleotidesCsv)
@@ -426,7 +426,7 @@ def generateStatisticsPerFolder(saveFilesBasePath,sf,regionSize):
     setNumericalStatisticsSingleFile(baselineDf,candidateDf,f"{sf}/recallStatistics.csv",f"{saveFilesBasePath}/chromosomeCSVs/recallStatistics.csv",regionSize,f"{sf}/recallNucleotides.csv")
     setNumericalStatisticsSingleFile(candidateDf,baselineDf,f"{sf}/precisionStatistics.csv",f"{saveFilesBasePath}/chromosomeCSVs/precisionStatistics.csv",regionSize,f"{sf}/precisionNucleotides.csv")    
     
-    writeNucleotides(sf)
+    writeNucleotides(saveFilesBasePath,sf)
 
 def writeHeaders(saveFilesBasePath,paths,contents):
     for i in range(len(paths)):
@@ -502,8 +502,8 @@ def getSizeStatistics(df,dictVar,listOfTriads):
 def initializeStatisticGroup(dictVar,groupIter,regionSize):
     dictVar["groups"][str(groupIter)] = {"size_range": f"{groupIter*regionSize} - {groupIter*regionSize + regionSize - 1}", "data": {}}
 
-def getGenesData(isBaseline):
-    genesDf = pd.read_csv("chromosomeCSVs/gene_transcript_predicted.csv")
+def getGenesData(saveFilesBasePath,isBaseline):
+    genesDf = pd.read_csv(f"{saveFilesBasePath}/chromosomeCSVs/gene_transcript_predicted.csv")
     genesDf = genesDf.loc[genesDf["is_baseline"] == isBaseline]
     
     genesSizeDf = (genesDf.groupby(["gene_predicted","predicted"])["exon_qtty"].mean().reset_index())
@@ -520,10 +520,10 @@ def getGenesData(isBaseline):
 
     return genesSizeDf, predictedPercentage, unpredictedPercentage    
 
-def generateGeneralStatistics(filePath,statPath,regionSize,isBaseline):
+def generateGeneralStatistics(saveFilesBasePath,filePath,statPath,regionSize,isBaseline):
     generalStatistic = {}
 
-    genesSizeDf, predictedPercentage, unpredictedPercentage = getGenesData(isBaseline)
+    genesSizeDf, predictedPercentage, unpredictedPercentage = getGenesData(saveFilesBasePath,isBaseline)
 
     groupedDf, ungroupedDf, maxPos = breakDf(filePath)
 
@@ -692,5 +692,5 @@ def statisticalAnalysis(saveFilesBasePath,extraArgs):
         for cf in chromosomeFolders:
             generateStatisticsPerFolder(saveFilesBasePath,cf,regionSize)
             moveGeneTranscript(saveFilesBasePath,cf)
-    generateGeneralStatistics(f"{saveFilesBasePath}/chromosomeCSVs/recallStatistics.csv",f"{saveFilesBasePath}/finalJsons/recallStatistics.json",regionSize,True)
-    generateGeneralStatistics(f"{saveFilesBasePath}/chromosomeCSVs/precisionStatistics.csv",f"{saveFilesBasePath}/finalJsons/precisionStatistics.json",regionSize,False)
+    generateGeneralStatistics(saveFilesBasePath,f"{saveFilesBasePath}/chromosomeCSVs/recallStatistics.csv",f"{saveFilesBasePath}/finalJsons/recallStatistics.json",regionSize,True)
+    generateGeneralStatistics(saveFilesBasePath,f"{saveFilesBasePath}/chromosomeCSVs/precisionStatistics.csv",f"{saveFilesBasePath}/finalJsons/precisionStatistics.json",regionSize,False)

@@ -75,7 +75,7 @@ def getSubDfs(df,listOfPairs):
 
     return dfsList
 
-def fillCsv(csvPath,isBaseline,hasBothFiles):
+def fillCsv(saveFilesBasePath,csvPath,isBaseline,hasBothFiles):
     if not os.path.isfile(csvPath):
         return False
 
@@ -126,7 +126,7 @@ def fillCsv(csvPath,isBaseline,hasBothFiles):
     df.to_csv(csvPath, index=False)
     basePath = "/".join(csvPath.split('/')[:-1]) + "/"
 
-    genePredictFilePath = "chromosomeCSVs/transcriptAndGeneBaselineFile.csv" if isBaseline else "chromosomeCSVs/transcriptAndGeneCandidateFile.csv" 
+    genePredictFilePath = f"{saveFilesBasePath}/chromosomeCSVs/transcriptAndGeneBaselineFile.csv" if isBaseline else f"{saveFilesBasePath}/chromosomeCSVs/transcriptAndGeneCandidateFile.csv" 
     genePredictDf = pd.read_csv(genePredictFilePath) 
     dfPredictString = pd.merge(dfString,genePredictDf,on=['chromosome_identifier','gene_id', 'transcript_id'],how='left')
     dfPredictString = dfPredictString[["chromosome_identifier","gene_id", "transcript_id","start_gene","end_gene","start_transcript","end_transcript","exon_qtty","gene_string","predicted"]]
@@ -230,10 +230,10 @@ def fillData(saveFilesBasePath,extraArgs):
                 continue
 
             if hasBaseline(sf):
-                baselineDf, baselineGeneStringDf = fillCsv(f"{sf}/processedBaselineFile.csv",True,hasCandidate(sf))
+                baselineDf, baselineGeneStringDf = fillCsv(saveFilesBasePath,f"{sf}/processedBaselineFile.csv",True,hasCandidate(sf))
 
             if hasCandidate(sf):
-                candidateDf, candidateGeneStringDf = fillCsv(f"{sf}/processedCandidateFile.csv",False,hasBaseline(sf))
+                candidateDf, candidateGeneStringDf = fillCsv(saveFilesBasePath,f"{sf}/processedCandidateFile.csv",False,hasBaseline(sf))
 
             if hasBaseline(sf) and hasCandidate(sf):
                 predictedDf = compareGenes(sf, baselineGeneStringDf, candidateGeneStringDf)
