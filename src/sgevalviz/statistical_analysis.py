@@ -462,6 +462,7 @@ def getSizeStatistic(df, isGenePredicted, isTranscriptPredicted):
 
 def getGroupedDataDf(df,maxPos):
     identifiers = df["identifier"].unique()
+    print("Max Pos = ", maxPos)
     fullGrid = pd.MultiIndex.from_product([identifiers, range(maxPos + 1)], names=["identifier", "pos"]).to_frame(index=False)
 
     filledDf = fullGrid.merge(df, on=["identifier", "pos"], how="left")
