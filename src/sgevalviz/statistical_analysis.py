@@ -462,7 +462,6 @@ def getSizeStatistic(df, isGenePredicted, isTranscriptPredicted):
 
 def getGroupedDataDf(df,maxPos):
     identifiers = df["identifier"].unique()
-    print("Max Pos = ", maxPos)
     fullGrid = pd.MultiIndex.from_product([identifiers, range(maxPos + 1)], names=["identifier", "pos"]).to_frame(index=False)
 
     filledDf = fullGrid.merge(df, on=["identifier", "pos"], how="left")
@@ -472,15 +471,24 @@ def getGroupedDataDf(df,maxPos):
     return filledDf
 
 def breakDf(filePath):
-    baseDf = pd.read_csv(filePath)
-    baseDf = baseDf.groupby(["identifier","pos"], as_index=False)["value"].sum()
-    baseGroupedDf = baseDf.loc[baseDf["pos"] != -1].copy()
-    ungroupedDf = baseDf.loc[baseDf["pos"] == -1].copy()
-    ungroupedDf.drop(columns=["pos"], inplace=True)
-    maxPos = baseGroupedDf["pos"].max()
     print("\n\n\n\n\n")
     print("File Path = ",filePath,"\nContent:\n")
+    print("BaseDf =")
+    baseDf = pd.read_csv(filePath)
+    print(baseDf)
+    print("BaseDf2 =")
+    baseDf = baseDf.groupby(["identifier","pos"], as_index=False)["value"].sum()
+    print(baseDf)
+    print("BaseGroupedDf =")
+    baseGroupedDf = baseDf.loc[baseDf["pos"] != -1].copy()
+    print(baseGroupedDf)
+    ungroupedDf = baseDf.loc[baseDf["pos"] == -1].copy()
+    ungroupedDf.drop(columns=["pos"], inplace=True)
+    print("MaxPosList = ")
     print(baseGroupedDf["pos"])
+    print("Max Pos = ")
+    maxPos = baseGroupedDf["pos"].max()
+    print(maxPos)
     groupedDf = getGroupedDataDf(baseGroupedDf,maxPos)
 
     return groupedDf, ungroupedDf, maxPos
