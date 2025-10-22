@@ -106,12 +106,12 @@ def updateLineParamsToConfig(config, seqname, source, featureType, startPos, end
     #     jsonData = json.load(f)
 
     try:
-        with resources.files("sgevalviz.configs").joinpath(f"{config}.json").open("r", encoding="utf-8") as f:
-            jsonData = json.load(f)
+        config_path = resources.files("sgevalviz.configs").joinpath(f"{config}.json")
+        with resources.as_file(config_path) as real_path:
+            with open(real_path, "r", encoding="utf-8") as f:
+                jsonData = json.load(f)
     except FileNotFoundError:
         raise FileNotFoundError(f"Config file '{config}.json' not found in sgevalviz/configs/")
-
-
 
     falseReturn = [False for i in range(11)]
     
