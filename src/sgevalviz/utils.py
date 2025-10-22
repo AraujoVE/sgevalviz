@@ -99,19 +99,25 @@ def updatedParam(paramVar, paramName, jsonData):
     return True, returnVar            
 
 
+from importlib import resources
+import json
+
+def loadConfig(config):
+    try:
+        json_str = resources.read_text("sgevalviz.configs", f"{config}.json", encoding="utf-8")
+        return json.loads(json_str)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Config file '{config}.json' not found in sgevalviz/configs/")
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON in config file '{config}.json': {e}")
+
 
 
 def updateLineParamsToConfig(config, seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId):
     # with open(f'configs/{config}.json', 'r') as f:
     #     jsonData = json.load(f)
 
-    try:
-        config_path = resources.files("sgevalviz.configs").joinpath(f"{config}.json")
-        with resources.as_file(config_path) as real_path:
-            with open(real_path, "r", encoding="utf-8") as f:
-                jsonData = json.load(f)
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Config file '{config}.json' not found in sgevalviz/configs/")
+    jsonData = loadConfig(config)
 
     falseReturn = [False for i in range(11)]
     
