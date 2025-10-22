@@ -478,6 +478,9 @@ def breakDf(filePath):
     ungroupedDf = baseDf.loc[baseDf["pos"] == -1].copy()
     ungroupedDf.drop(columns=["pos"], inplace=True)
     maxPos = baseGroupedDf["pos"].max()
+    print("\n\n\n\n\n")
+    print("File Path = ",filePath,"\nContent:\n")
+    print(baseGroupedDf["pos"])
     groupedDf = getGroupedDataDf(baseGroupedDf,maxPos)
 
     return groupedDf, ungroupedDf, maxPos
