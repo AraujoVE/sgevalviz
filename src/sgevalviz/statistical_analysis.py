@@ -6,7 +6,7 @@ import itertools
 import numpy as np
 
 def getChromosomeFolders(saveFilesBasePath):
-    folder = f"{saveFilesBasePath}/chromosomeCSVs"
+    folder = f"{saveFilesBasePath}chromosomeCSVs"
     subfolders = [f.path for f in os.scandir(folder) if f.is_dir()]
     
     return subfolders
@@ -364,11 +364,11 @@ def computeNucleotideSet(df):
 def writeNucleotides(saveFilesBasePath,chromosomeFolder):
     recallChromosomeCsv = f"{chromosomeFolder}/recallStatistics.csv"
     recallNucleotidesCsv = f"{chromosomeFolder}/recallNucleotides.csv"
-    recallCsv = f"{saveFilesBasePath}/chromosomeCSVs/recallStatistics.csv"
+    recallCsv = f"{saveFilesBasePath}chromosomeCSVs/recallStatistics.csv"
 
     precisionChromosomeCsv = f"{chromosomeFolder}/precisionStatistics.csv"
     precisionNucleotidesCsv = f"{chromosomeFolder}/precisionNucleotides.csv"
-    precisionCsv = f"{saveFilesBasePath}/chromosomeCSVs/precisionStatistics.csv"
+    precisionCsv = f"{saveFilesBasePath}chromosomeCSVs/precisionStatistics.csv"
 
     
     recallNucleotideDf = pd.read_csv(recallNucleotidesCsv)
@@ -423,18 +423,18 @@ def generateStatisticsPerFolder(saveFilesBasePath,sf,regionSize):
     baselineDf = pd.read_csv(f"{sf}/processedBaselineFile.csv") if hasBaseline else None
     candidateDf = pd.read_csv(f"{sf}/processedCandidateFile.csv") if hasCandidate else None
 
-    setNumericalStatisticsSingleFile(baselineDf,candidateDf,f"{sf}/recallStatistics.csv",f"{saveFilesBasePath}/chromosomeCSVs/recallStatistics.csv",regionSize,f"{sf}/recallNucleotides.csv")
-    setNumericalStatisticsSingleFile(candidateDf,baselineDf,f"{sf}/precisionStatistics.csv",f"{saveFilesBasePath}/chromosomeCSVs/precisionStatistics.csv",regionSize,f"{sf}/precisionNucleotides.csv")    
+    setNumericalStatisticsSingleFile(baselineDf,candidateDf,f"{sf}/recallStatistics.csv",f"{saveFilesBasePath}chromosomeCSVs/recallStatistics.csv",regionSize,f"{sf}/recallNucleotides.csv")
+    setNumericalStatisticsSingleFile(candidateDf,baselineDf,f"{sf}/precisionStatistics.csv",f"{saveFilesBasePath}chromosomeCSVs/precisionStatistics.csv",regionSize,f"{sf}/precisionNucleotides.csv")    
     
     writeNucleotides(saveFilesBasePath,sf)
 
 def writeHeaders(saveFilesBasePath,paths,contents):
     for i in range(len(paths)):
-        with open(f"{saveFilesBasePath}/{paths[i]}",'w') as f:
+        with open(f"{saveFilesBasePath}{paths[i]}",'w') as f:
             f.write(f"{contents[i]}\n")
 
 def moveGeneTranscript(saveFilesBasePath,sf):
-    with open(f"{sf}/gene_transcript_predicted.csv","r") as f_in, open(f"{saveFilesBasePath}/chromosomeCSVs/gene_transcript_predicted.csv","a") as f_out:
+    with open(f"{sf}/gene_transcript_predicted.csv","r") as f_in, open(f"{saveFilesBasePath}chromosomeCSVs/gene_transcript_predicted.csv","a") as f_out:
         content = f_in.read()
         noHeaderContent = content.split("\n",1)[1]
         f_out.write(noHeaderContent)
@@ -507,7 +507,7 @@ def initializeStatisticGroup(dictVar,groupIter,regionSize):
     dictVar["groups"][str(groupIter)] = {"size_range": f"{groupIter*regionSize} - {groupIter*regionSize + regionSize - 1}", "data": {}}
 
 def getGenesData(saveFilesBasePath,isBaseline):
-    genesDf = pd.read_csv(f"{saveFilesBasePath}/chromosomeCSVs/gene_transcript_predicted.csv")
+    genesDf = pd.read_csv(f"{saveFilesBasePath}chromosomeCSVs/gene_transcript_predicted.csv")
     genesDf = genesDf.loc[genesDf["is_baseline"] == isBaseline]
     
     genesSizeDf = (genesDf.groupby(["gene_predicted","predicted"])["exon_qtty"].mean().reset_index())
@@ -696,5 +696,5 @@ def statisticalAnalysis(saveFilesBasePath,extraArgs):
         for cf in chromosomeFolders:
             generateStatisticsPerFolder(saveFilesBasePath,cf,regionSize)
             moveGeneTranscript(saveFilesBasePath,cf)
-    generateGeneralStatistics(saveFilesBasePath,f"{saveFilesBasePath}/chromosomeCSVs/recallStatistics.csv",f"{saveFilesBasePath}/finalJsons/recallStatistics.json",regionSize,True)
-    generateGeneralStatistics(saveFilesBasePath,f"{saveFilesBasePath}/chromosomeCSVs/precisionStatistics.csv",f"{saveFilesBasePath}/finalJsons/precisionStatistics.json",regionSize,False)
+    generateGeneralStatistics(saveFilesBasePath,f"{saveFilesBasePath}chromosomeCSVs/recallStatistics.csv",f"{saveFilesBasePath}finalJsons/recallStatistics.json",regionSize,True)
+    generateGeneralStatistics(saveFilesBasePath,f"{saveFilesBasePath}chromosomeCSVs/precisionStatistics.csv",f"{saveFilesBasePath}finalJsons/precisionStatistics.json",regionSize,False)

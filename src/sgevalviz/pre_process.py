@@ -139,14 +139,14 @@ def preProcessFile(baseDir, inputPath,outputPath, transcriptGenePath, splitByChr
 
 # Revised
 def fileDefinition(saveFilesBasePath):
-    basePath = f"{saveFilesBasePath}/chromosomeCSVs/"
+    basePath = f"{saveFilesBasePath}chromosomeCSVs/"
 
     if os.path.exists(basePath):
         shutil.rmtree(basePath)
 
     os.makedirs(basePath,exist_ok=True)
 
-    finalPath = f"{saveFilesBasePath}/finalJsons/"
+    finalPath = f"{saveFilesBasePath}finalJsons/"
 
     if os.path.exists(finalPath):
         shutil.rmtree(finalPath)

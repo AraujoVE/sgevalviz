@@ -334,7 +334,7 @@ def getDict(filePath):
 
 def plotGroup(saveFilesBasePath,groupName,groupPath):
     fullDict = getDict(groupPath)
-    dirPath = f"{saveFilesBasePath}/{groupName}_Plots"
+    dirPath = f"{saveFilesBasePath}{groupName}_Plots"
 
     if os.path.exists(dirPath):
         shutil.rmtree(dirPath)
@@ -350,5 +350,5 @@ def plotGroup(saveFilesBasePath,groupName,groupPath):
 
 
 def plot(saveFilesBasePath):
-    plotGroup(saveFilesBasePath,"Precision",f"{saveFilesBasePath}/finalJsons/precisionStatistics.json")
-    plotGroup(saveFilesBasePath,"Recall",f"{saveFilesBasePath}/finalJsons/recallStatistics.json")
+    plotGroup(saveFilesBasePath,"Precision",f"{saveFilesBasePath}finalJsons/precisionStatistics.json")
+    plotGroup(saveFilesBasePath,"Recall",f"{saveFilesBasePath}finalJsons/recallStatistics.json")

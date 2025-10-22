@@ -126,7 +126,7 @@ def fillCsv(saveFilesBasePath,csvPath,isBaseline,hasBothFiles):
     df.to_csv(csvPath, index=False)
     basePath = "/".join(csvPath.split('/')[:-1]) + "/"
 
-    genePredictFilePath = f"{saveFilesBasePath}/chromosomeCSVs/transcriptAndGeneBaselineFile.csv" if isBaseline else f"{saveFilesBasePath}/chromosomeCSVs/transcriptAndGeneCandidateFile.csv" 
+    genePredictFilePath = f"{saveFilesBasePath}chromosomeCSVs/transcriptAndGeneBaselineFile.csv" if isBaseline else f"{saveFilesBasePath}chromosomeCSVs/transcriptAndGeneCandidateFile.csv" 
     genePredictDf = pd.read_csv(genePredictFilePath) 
     dfPredictString = pd.merge(dfString,genePredictDf,on=['chromosome_identifier','gene_id', 'transcript_id'],how='left')
     dfPredictString = dfPredictString[["chromosome_identifier","gene_id", "transcript_id","start_gene","end_gene","start_transcript","end_transcript","exon_qtty","gene_string","predicted"]]
@@ -202,7 +202,7 @@ def compareGenes(sf,baselineDf,candidateDf):
 
 
 def getChromosomeFolders(saveFilesBasePath):
-    folder = f"{saveFilesBasePath}/chromosomeCSVs"
+    folder = f"{saveFilesBasePath}chromosomeCSVs"
     subfolders = [f.path for f in os.scandir(folder) if f.is_dir()]
     
     return subfolders
