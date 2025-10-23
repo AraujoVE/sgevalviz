@@ -94,14 +94,12 @@ def writeSinglePreProcess(inputPath,outputPath,transcriptGenePath,splitByChromos
     chromosomes = set()
     geneDf = pd.DataFrame(columns=['chromosome_identifier','gene_id','start_gene','end_gene'])
     transcriptDf = pd.DataFrame(columns=['chromosome_identifier','gene_id','transcript_id','start_transcript','end_transcript'])
-    print("\n\n\n\n\n\n\n\n\n\nGROUP:\n\n\n\n")
     with open(inputPath, 'r') as f_in, open(outputPath, 'w') as f_out:
         for line in f_in:
             if isInvalidLine(line):
                 continue
 
             seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId = getLineParams(line,config)         
-            print("seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId = ",seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId,"\n\n")
 
             if featureType == False:
                 continue

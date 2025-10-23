@@ -114,12 +114,7 @@ def loadConfig(config):
 
 
 def updateLineParamsToConfig(config, seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId):
-    # with open(f'configs/{config}.json', 'r') as f:
-    #     jsonData = json.load(f)
-
     jsonData = loadConfig(config)
-    print("JSON Data = ")
-    print(jsonData)
 
     falseReturn = [False for i in range(11)]
     

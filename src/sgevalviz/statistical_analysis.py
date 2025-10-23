@@ -471,24 +471,12 @@ def getGroupedDataDf(df,maxPos):
     return filledDf
 
 def breakDf(filePath):
-    print("\n\n\n\n\n")
-    print("File Path = ",filePath,"\nContent:\n")
-    print("BaseDf =")
     baseDf = pd.read_csv(filePath)
-    print(baseDf)
-    print("BaseDf2 =")
     baseDf = baseDf.groupby(["identifier","pos"], as_index=False)["value"].sum()
-    print(baseDf)
-    print("BaseGroupedDf =")
     baseGroupedDf = baseDf.loc[baseDf["pos"] != -1].copy()
-    print(baseGroupedDf)
     ungroupedDf = baseDf.loc[baseDf["pos"] == -1].copy()
     ungroupedDf.drop(columns=["pos"], inplace=True)
-    print("MaxPosList = ")
-    print(baseGroupedDf["pos"])
-    print("Max Pos = ")
     maxPos = baseGroupedDf["pos"].max()
-    print(maxPos)
     groupedDf = getGroupedDataDf(baseGroupedDf,maxPos)
 
     return groupedDf, ungroupedDf, maxPos
