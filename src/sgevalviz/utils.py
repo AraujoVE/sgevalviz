@@ -118,6 +118,8 @@ def updateLineParamsToConfig(config, seqname, source, featureType, startPos, end
     #     jsonData = json.load(f)
 
     jsonData = loadConfig(config)
+    print("JSON Data = ")
+    print(jsonData)
 
     falseReturn = [False for i in range(11)]
     
