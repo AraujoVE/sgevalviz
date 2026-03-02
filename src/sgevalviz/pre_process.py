@@ -14,7 +14,7 @@ def getGtfExtraAttributes(extraAttributes, attributesName):
     extraAttributesDict = {extraAttributesList[i]: trimAttribute(extraAttributesList[i+1]) for i in range(0,len(extraAttributesList),2) if extraAttributesList[i] in attributesName}
     return True, extraAttributesDict
 
-def getLineParams(line,config):
+def getLineParams(line,config,isStandardConfig):
     falseResult = [False for i in range(10)]
 
     if line.count("\t") != 8:
@@ -43,7 +43,7 @@ def getLineParams(line,config):
     geneId = extraAttributesDict["gene_id"]
     transcriptId = extraAttributesDict["transcript_id"]
     if config != "":
-        validLine, seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId = updateLineParamsToConfig(config, seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId)
+        validLine, seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId = updateLineParamsToConfig(config,isStandardConfig, seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId)
 
         if not validLine:
             return falseResult
@@ -63,6 +63,14 @@ def getChromosomeIdentifier(seqname,strand,splitByChromosome):
 
     return chromosomeIdentifier
 
+def writeOnChromosomeFolder(input,output,chromosomeIdentifier,header):
+    with open(input, 'r') as f_in, open(output, 'w') as f_out:
+        f_out.write(f"{header}\n")
+        for line in f_in:
+            lineIdentifier, _ = line.split(",", 1)
+            if lineIdentifier == chromosomeIdentifier:
+                f_out.write(line)
+
 
 def writeChromosomeFile(chromosomeIdentifier,baseDir,inputPath,inputPathTranscript,outputPath,transcriptGenePath):
     chromosomeNewDir = f"{baseDir}{chromosomeIdentifier}/"
@@ -70,19 +78,8 @@ def writeChromosomeFile(chromosomeIdentifier,baseDir,inputPath,inputPathTranscri
     fullTranscriptPath = f"{chromosomeNewDir}{transcriptGenePath}" 
     os.makedirs(chromosomeNewDir,exist_ok=True)
 
-    with open(inputPath, 'r') as f_in, open(fullOutputPath, 'w') as f_out:
-        f_out.write("chromosome_identifier,gene_id,transcript_id,is_exon,is_intron,is_start_codon,is_stop_codon,is_first_exon,is_last_exon,is_foward_strand,region_start,region_end,predicted\n")
-        for line in f_in:
-            lineIdentifier, _ = line.split(",", 1)
-            if lineIdentifier == chromosomeIdentifier:
-                f_out.write(line)
-
-    with open(inputPathTranscript, 'r') as f_in, open(fullTranscriptPath, 'w') as f_out:
-        f_out.write("chromosome_identifier,gene_id,transcript_id,start_gene,end_gene,start_transcript,end_transcript\n")
-        for line in f_in:
-            lineIdentifier, _ = line.split(",", 1)
-            if lineIdentifier == chromosomeIdentifier:
-                f_out.write(line)
+    writeOnChromosomeFolder(inputPath,fullOutputPath,chromosomeIdentifier,"chromosome_identifier,gene_id,transcript_id,is_exon,is_intron,is_start_codon,is_stop_codon,is_first_exon,is_last_exon,is_foward_strand,region_start,region_end,predicted")
+    writeOnChromosomeFolder(inputPathTranscript,fullTranscriptPath,chromosomeIdentifier,"chromosome_identifier,gene_id,transcript_id,start_gene,end_gene,start_transcript,end_transcript")
 
     return
 
@@ -90,7 +87,7 @@ def isInvalidLine(line):
     strippedLine = line.strip()
     return strippedLine == "" or strippedLine.startswith("#")
 
-def writeSinglePreProcess(inputPath,outputPath,transcriptGenePath,splitByChromosome,extraArgs,config):
+def writeSinglePreProcess(inputPath,outputPath,transcriptGenePath,splitByChromosome,extraArgs,config,isStandardConfig):
     chromosomes = set()
     geneDf = pd.DataFrame(columns=['chromosome_identifier','gene_id','start_gene','end_gene'])
     transcriptDf = pd.DataFrame(columns=['chromosome_identifier','gene_id','transcript_id','start_transcript','end_transcript'])
@@ -99,7 +96,7 @@ def writeSinglePreProcess(inputPath,outputPath,transcriptGenePath,splitByChromos
             if isInvalidLine(line):
                 continue
 
-            seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId = getLineParams(line,config)         
+            seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId = getLineParams(line,config,isStandardConfig)         
 
             if featureType == False:
                 continue
@@ -128,16 +125,17 @@ def writeSinglePreProcess(inputPath,outputPath,transcriptGenePath,splitByChromos
     geneTranscriptDf.to_csv(transcriptGenePath, encoding='utf-8', index=False)
     return chromosomes
 
-def preProcessFile(baseDir, inputPath,outputPath, transcriptGenePath, splitByChromosome,extraArgs,config):
+def preProcessFile(baseDir, inputPath,outputPath, transcriptGenePath, splitByChromosome,extraArgs,config,isStandardConfig):
     singleFileOutput = f"{baseDir}{outputPath}"
     transcriptGeneFileOutput = f"{baseDir}{transcriptGenePath}"
-    chromosomeIdentifiers = writeSinglePreProcess(inputPath,singleFileOutput,transcriptGeneFileOutput,splitByChromosome,extraArgs,config)
+    chromosomeIdentifiers = writeSinglePreProcess(inputPath,singleFileOutput,transcriptGeneFileOutput,splitByChromosome,extraArgs,config,isStandardConfig)
 
     for chromosome in chromosomeIdentifiers:
         writeChromosomeFile(chromosome,baseDir,singleFileOutput,transcriptGeneFileOutput,outputPath,transcriptGenePath)
 
 # Revised
 def fileDefinition(saveFilesBasePath):
+    saveFilesBasePath += "/" if saveFilesBasePath[-1] != "/" else ""
     basePath = f"{saveFilesBasePath}chromosomeCSVs/"
 
     if os.path.exists(basePath):
@@ -166,9 +164,16 @@ def preProcess(saveFilesBasePath,candidateFilePath, baselineFilePath, extraArgs)
     executePreProcess = not checkParam(extraArgs,"--no-pre-process")[0]
     if executePreProcess:
         splitByChromosome = not checkParam(extraArgs,"--no-split")[0]
-        candidateConfig =  checkParam(extraArgs,"--candidate-config")[1] if checkParam(extraArgs,"--candidate-config")[0] else ""
-        baselineConfig =  checkParam(extraArgs,"--baseline-config")[1] if checkParam(extraArgs,"--baseline-config")[0] else ""
+        
+        standardCandidateConfig =  checkParam(extraArgs,"--candidate-config")[1] if checkParam(extraArgs,"--candidate-config")[0] else ""
+        customCandidateConfig =  checkParam(extraArgs,"--custom-candidate-config")[1] if checkParam(extraArgs,"--custom-candidate-config")[0] else ""
+        candidateConfig, isStandardCandidateConfig = getConfigType(standardCandidateConfig, customCandidateConfig)
+        
+        standardBaselineConfig =  checkParam(extraArgs,"--baseline-config")[1] if checkParam(extraArgs,"--baseline-config")[0] else ""
+        customBaselineConfig =  checkParam(extraArgs,"--custom-baseline-config")[1] if checkParam(extraArgs,"--custom-baseline-config")[0] else ""
+        baselineConfig, isStandardBaselineConfig = getConfigType(standardBaselineConfig, customBaselineConfig)
+
         basePath, processedCandidateFile, processedBaselineFile, transcriptAndGeneCandidateFile, transcriptAndGeneBaselineFile = fileDefinition(saveFilesBasePath)
 
-        preProcessFile(basePath, candidateFilePath, processedCandidateFile, transcriptAndGeneCandidateFile, splitByChromosome,extraArgs,candidateConfig)
-        preProcessFile(basePath, baselineFilePath, processedBaselineFile, transcriptAndGeneBaselineFile, splitByChromosome,extraArgs,baselineConfig)
+        preProcessFile(basePath, candidateFilePath, processedCandidateFile, transcriptAndGeneCandidateFile, splitByChromosome,extraArgs,candidateConfig,isStandardCandidateConfig)
+        preProcessFile(basePath, baselineFilePath, processedBaselineFile, transcriptAndGeneBaselineFile, splitByChromosome,extraArgs,baselineConfig,isStandardBaselineConfig)

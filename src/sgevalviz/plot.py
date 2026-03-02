@@ -13,15 +13,12 @@ percentageConfig = [
     ],
     [
         ("exons_predicted_percentage","General"),
-        ("short_exons_predicted_percentage","<= 300 nt"),
-        ("long_exons_predicted_percentage","> 300 nt"),
-        ("first_exons_predicted_percentage","First"),
-        ("last_exons_predicted_percentage","Last")
+        ("first_exons_only_predicted_percentage","First"),
+        ("last_exons_only_predicted_percentage","Last"),
+        ("single_exons_predicted_percentage","Single")
     ],
     [
         ("introns_predicted_percentage","General"),
-        ("short_introns_predicted_percentage","<= 300 nt"),
-        ("long_introns_predicted_percentage","> 300 nt"),
         ("donors_predicted_percentage","Donors"),
         ("acceptors_predicted_percentage","Acceptors")
     ]
@@ -31,8 +28,9 @@ percentageTitles = ("General Prediction","Exon Prediction","Intron Prediction")
 groupPercentageConfig = [
     [
         ("exons_predicted_percentage","Exons"),
-        ("first_exons_predicted_percentage","First Exons"),
-        ("last_exons_predicted_percentage","Last Exons"),
+        ("first_exons_only_predicted_percentage","First Exons"),
+        ("last_exons_only_predicted_percentage","Last Exons"),
+        ("single_exons_predicted_percentage","Single Exons"),
         ("introns_predicted_percentage","Introns")
     ],
     [
@@ -41,14 +39,19 @@ groupPercentageConfig = [
         ("exons_unpredicted_by_total_percentage","Unpredicted")
     ],
     [
-        ("first_exons_by_total_percentage","General"),
-        ("first_exons_predicted_by_total_percentage","Predicted"),
-        ("first_exons_unpredicted_by_total_percentage","Unpredicted")
+        ("first_exons_only_by_total_percentage","General"),
+        ("first_exons_only_predicted_by_total_percentage","Predicted"),
+        ("first_exons_only_unpredicted_by_total_percentage","Unpredicted")
     ],
     [
-        ("last_exons_by_total_percentage","General"),
-        ("last_exons_predicted_by_total_percentage","Predicted"),
-        ("last_exons_unpredicted_by_total_percentage","Unpredicted")
+        ("last_exons_only_by_total_percentage","General"),
+        ("last_exons_only_predicted_by_total_percentage","Predicted"),
+        ("last_exons_only_unpredicted_by_total_percentage","Unpredicted")
+    ],
+    [
+        ("single_exons_by_total_percentage","General"),
+        ("single_exons_predicted_by_total_percentage","Predicted"),
+        ("single_exons_unpredicted_by_total_percentage","Unpredicted")
     ],
     [
         ("introns_by_total_percentage","General"),
@@ -59,7 +62,7 @@ groupPercentageConfig = [
 
 
 "exons_predicted_by_total_percentage"
-groupPercentageTitles = ("Exon/Intron Prediction - Group","Exon Occurance Percentage","First Exon Occurance Percentage","Last Exon Occurance Percentage","Intron Occurance Percentage")
+groupPercentageTitles = ("Exon/Intron Prediction - Group","Exon Occurance Percentage","First Exon Occurance Percentage","Last Exon Occurance Percentage","Single Exon Occurance Percentage","Intron Occurance Percentage")
 
 
 exonSizeConfig = [
@@ -69,27 +72,22 @@ exonSizeConfig = [
         ("exons_unpredicted_size_avg","Unpredicted")
     ],
     [
-        ("short_exons_total_size_avg","All"),
-        ("short_exons_predicted_size_avg","Predicted"),
-        ("short_exons_unpredicted_size_avg","Unpredicted")
+        ("first_exons_only_total_size_avg","All"),
+        ("first_exons_only_predicted_size_avg","Predicted"),
+        ("first_exons_only_unpredicted_size_avg","Unpredicted")
     ],
     [
-        ("long_exons_total_size_avg","All"),
-        ("long_exons_predicted_size_avg","Predicted"),
-        ("long_exons_unpredicted_size_avg","Unpredicted")
+        ("last_exons_only_total_size_avg","All"),
+        ("last_exons_only_predicted_size_avg","Predicted"),
+        ("last_exons_only_unpredicted_size_avg","Unpredicted")
     ],
     [
-        ("first_exons_total_size_avg","All"),
-        ("first_exons_predicted_size_avg","Predicted"),
-        ("first_exons_unpredicted_size_avg","Unpredicted")
-    ],
-    [
-        ("last_exons_total_size_avg","All"),
-        ("last_exons_predicted_size_avg","Predicted"),
-        ("last_exons_unpredicted_size_avg","Unpredicted")
+        ("single_exons_total_size_avg","All"),
+        ("single_exons_predicted_size_avg","Predicted"),
+        ("single_exons_unpredicted_size_avg","Unpredicted")
     ]
 ]
-exonSizeTitles = ["General Exon Size","Short Exon Size","Long Exon Size","General First Exon Size","General Last Exon Size"]
+exonSizeTitles = ["General Exon Size","General First Exon Size","General Last Exon Size","General Single Exon Size"]
 
 groupSizeConfig = [
     [
@@ -98,14 +96,19 @@ groupSizeConfig = [
         ("exons_unpredicted_size_avg","Unpredicted")
     ],
     [
-        ("first_exons_total_size_avg","All"),
-        ("first_exons_predicted_size_avg","Predicted"),
-        ("first_exons_unpredicted_size_avg","Unpredicted")
+        ("first_exons_only_total_size_avg","All"),
+        ("first_exons_only_predicted_size_avg","Predicted"),
+        ("first_exons_only_unpredicted_size_avg","Unpredicted")
     ],
     [
-        ("last_exons_total_size_avg","All"),
-        ("last_exons_predicted_size_avg","Predicted"),
-        ("last_exons_unpredicted_size_avg","Unpredicted")
+        ("last_exons_only_total_size_avg","All"),
+        ("last_exons_only_predicted_size_avg","Predicted"),
+        ("last_exons_only_unpredicted_size_avg","Unpredicted")
+    ],
+    [
+        ("single_exons_total_size_avg","All"),
+        ("single_exons_predicted_size_avg","Predicted"),
+        ("single_exons_unpredicted_size_avg","Unpredicted")
     ],
     [
         ("introns_total_size_avg","All"),
@@ -113,26 +116,16 @@ groupSizeConfig = [
         ("introns_unpredicted_size_avg","Unpredicted")
     ]
 ]
-groupSizeTitles = ["General Exon Size - Group","General First Exon Size - Group","General Last Exon Size - Group","General Intron Size - Group"]
+groupSizeTitles = ["General Exon Size - Group","General First Exon Size - Group","General Last Exon Size - Group","General Single Exon Size - Group","General Intron Size - Group"]
 
 groupIntronSizeConfig = [
     [
         ("introns_total_size_avg","All"),
         ("introns_predicted_size_avg","Predicted"),
         ("introns_unpredicted_size_avg","Unpredicted")
-    ],
-    [
-        ("short_introns_total_size_avg","All"),
-        ("short_introns_predicted_size_avg","Predicted"),
-        ("short_introns_unpredicted_size_avg","Unpredicted")
-    ],
-    [
-        ("long_introns_total_size_avg","All"),
-        ("long_introns_predicted_size_avg","Predicted"),
-        ("long_introns_unpredicted_size_avg","Unpredicted")
     ]
 ]
-groupIntronSizeTitles = ["General Intron - Group","Short Intron Size - Group","Long Intron Size - Group"]
+groupIntronSizeTitles = ["General Intron - Group"]
 
 
 intronSizeConfig = [
@@ -140,19 +133,9 @@ intronSizeConfig = [
         ("introns_total_size_avg","All"),
         ("introns_predicted_size_avg","Predicted"),
         ("introns_unpredicted_size_avg","Unpredicted")
-    ],
-    [
-        ("short_introns_total_size_avg","All"),
-        ("short_introns_predicted_size_avg","Predicted"),
-        ("short_introns_unpredicted_size_avg","Unpredicted")
-    ],
-    [
-        ("long_introns_total_size_avg","All"),
-        ("long_introns_predicted_size_avg","Predicted"),
-        ("long_introns_unpredicted_size_avg","Unpredicted")
     ]
 ]
-intronSizeTitles = ["General Intron","Short Intron Size","Long Intron Size"]
+intronSizeTitles = ["General Intron"]
 
 
 avgExonsInGenesConfig = [
@@ -185,25 +168,25 @@ def addBar(fullDict,dictKey,category,data,pos):
     data[pos]["categories"].append(category)
 
 
-def addLine(fullDict,dictKey,category,data,pos):
-    divideByGroup = ("size_avg" in dictKey)
-    groupSize = fullDict["groups"]["group_size"]
-    minGroup = fullDict["groups"]["min_group"]
-    maxGroup = fullDict["groups"]["max_group"]
-
-    xValues = [i*groupSize for i in range(minGroup,maxGroup+1)]
-    yValues = []
-
-    for i in range(minGroup,maxGroup+1):
-        dictValue = fullDict["groups"][str(i)]["data"][dictKey]
-        if divideByGroup and (dictValue is not None):
-            minValue = groupSize*(minGroup+i)
-            dictValue = (dictValue - minValue)/groupSize
-        yValues.append(dictValue)
-
-    data[pos]["valuesX"].append(xValues)
-    data[pos]["valuesY"].append(yValues)
-    data[pos]["categories"].append(category)
+#def addLine(fullDict,dictKey,category,data,pos):
+#    divideByGroup = ("size_avg" in dictKey)
+#    groupSize = fullDict["groups"]["group_size"]
+#    minGroup = fullDict["groups"]["min_group"]
+#    maxGroup = fullDict["groups"]["max_group"]
+#
+#    xValues = [i*groupSize for i in range(minGroup,maxGroup+1)]
+#    yValues = []
+#
+#    for i in range(minGroup,maxGroup+1):
+#        dictValue = fullDict["groups"][str(i)]["data"][dictKey]
+#        if divideByGroup and (dictValue is not None):
+#            minValue = groupSize*(minGroup+i)
+#            dictValue = (dictValue - minValue)/groupSize
+#        yValues.append(dictValue)
+#
+#    data[pos]["valuesX"].append(xValues)
+#    data[pos]["valuesY"].append(yValues)
+#    data[pos]["categories"].append(category)
 
 def addColors(data,keyName):
     colors = [
@@ -263,25 +246,25 @@ def plotBarData(data, axs, yLable):
         axs[i].set_ylabel(yLable)
         axs[i].grid(axis='y', linestyle='--', alpha=0.5)
 
-def plotLineData(data, axs, yLable):
-    for i, d in enumerate(data):
-        x = d["valuesX"][0]
-        for j in range(len(d["categories"])):
-            axs[i].plot(
-                x,
-                d["valuesY"][j],
-                label=d["categories"][j],
-                color=d["colors"][j],
-                marker='o',        # shape: 'o', 's', '^', 'D', etc.
-                markersize=5,      # size of the markers
-                markeredgecolor='black',  # outline (optional)
-                linewidth=1.5      # thickness of the connecting line
-            )
-
-        axs[i].set_title(d["title"], fontsize=12, fontweight='bold')
-        axs[i].set_ylabel(yLable)
-        axs[i].grid(axis='y', linestyle='--', alpha=0.5)
-        axs[i].legend()
+#def plotLineData(data, axs, yLable):
+#    for i, d in enumerate(data):
+#        x = d["valuesX"][0]
+#        for j in range(len(d["categories"])):
+#            axs[i].plot(
+#                x,
+#                d["valuesY"][j],
+#                label=d["categories"][j],
+#                color=d["colors"][j],
+#                marker='o',        # shape: 'o', 's', '^', 'D', etc.
+#                markersize=5,      # size of the markers
+#                markeredgecolor='black',  # outline (optional)
+#                linewidth=1.5      # thickness of the connecting line
+#            )
+#
+#        axs[i].set_title(d["title"], fontsize=12, fontweight='bold')
+#        axs[i].set_ylabel(yLable)
+#        axs[i].grid(axis='y', linestyle='--', alpha=0.5)
+#        axs[i].legend()
 
 def barGraphs(fullDict,baseDir,imgTitle,yLable,config,titles):
     graphsNo = len(config)
@@ -304,26 +287,26 @@ def barGraphs(fullDict,baseDir,imgTitle,yLable,config,titles):
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     plt.savefig(f"{baseDir}/{imgTitle}.png", dpi=300, bbox_inches="tight")
 
-def lineGraphs(fullDict,baseDir,imgTitle,yLable,config,titles):
-    graphsNo = len(config)
-    data = baseDicts(graphsNo,["categories","valuesX","valuesY","title","colors"])
-    addTitles(data,titles)
-
-    for i in range(len(config)):
-        for line in config[i]:
-            addLine(fullDict,line[0],line[1],data,i)
-    
-    addColors(data,"valuesY")
-
-    fig, axs = plt.subplots(graphsNo, 1, figsize=(10, 5*graphsNo))
-
-    axs = [axs] if graphsNo == 1 else axs.flatten()
-
-    plotLineData(data,axs,yLable)
-
-    fig.suptitle(imgTitle, fontsize=16, fontweight='bold')
-    plt.tight_layout(rect=[0, 0, 1, 0.96])
-    plt.savefig(f"{baseDir}/{imgTitle}.png", dpi=300, bbox_inches="tight")
+#def lineGraphs(fullDict,baseDir,imgTitle,yLable,config,titles):
+#    graphsNo = len(config)
+#    data = baseDicts(graphsNo,["categories","valuesX","valuesY","title","colors"])
+#    addTitles(data,titles)
+#
+#    for i in range(len(config)):
+#        for line in config[i]:
+#            addLine(fullDict,line[0],line[1],data,i)
+#    
+#    addColors(data,"valuesY")
+#
+#    fig, axs = plt.subplots(graphsNo, 1, figsize=(10, 5*graphsNo))
+#
+#    axs = [axs] if graphsNo == 1 else axs.flatten()
+#
+#    plotLineData(data,axs,yLable)
+#
+#    fig.suptitle(imgTitle, fontsize=16, fontweight='bold')
+#    plt.tight_layout(rect=[0, 0, 1, 0.96])
+#    plt.savefig(f"{baseDir}/{imgTitle}.png", dpi=300, bbox_inches="tight")
 
 
 def getDict(filePath):
@@ -345,8 +328,8 @@ def plotGroup(saveFilesBasePath,groupName,groupPath):
     barGraphs(fullDict,dirPath,f"{groupName} Exon Size Statistics","Nucleotide Bases",exonSizeConfig,exonSizeTitles)
     barGraphs(fullDict,dirPath,f"{groupName} Intron Size Statistics","Nucleotide Bases",intronSizeConfig,intronSizeTitles)
     barGraphs(fullDict,dirPath,f"{groupName} Exon Quantity Statistics","Number of Exons",avgExonsInGenesConfig,avgExonsInGenesTitle)
-    lineGraphs(fullDict,dirPath,f"{groupName} Group Percentage Statistics","Percentage",groupPercentageConfig,groupPercentageTitles)
-    lineGraphs(fullDict,dirPath,f"{groupName} Group Size Statistics","Average Size Percentil",groupSizeConfig,groupSizeTitles)
+    #lineGraphs(fullDict,dirPath,f"{groupName} Group Percentage Statistics","Percentage",groupPercentageConfig,groupPercentageTitles)
+    #lineGraphs(fullDict,dirPath,f"{groupName} Group Size Statistics","Average Size Percentil",groupSizeConfig,groupSizeTitles)
 
 
 def plot(saveFilesBasePath):

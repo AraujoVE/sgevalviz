@@ -32,3 +32,6 @@ def run(argv=None):
 
 def main():
     run(sys.argv)
+
+if __name__ == "__main__":
+    main()

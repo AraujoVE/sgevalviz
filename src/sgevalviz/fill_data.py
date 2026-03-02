@@ -3,33 +3,44 @@ import pandas as pd
 from sgevalviz.utils import *
 import numpy as np
 
-def defineFirstLastExon(df,isFoward):
+#def defineFirstLastExon(df,isFoward):
+#    dfLocal = df.groupby(['gene_id', 'transcript_id'])
+#
+#    exonGroup1 = dfLocal.head(1).index
+#    exonGroup2 = dfLocal.tail(1).index
+#    firstExon = exonGroup1 if isFoward else exonGroup2
+#    lastExon = exonGroup2 if isFoward else exonGroup1
+#    df.loc[firstExon,"is_first_exon"] = True
+#    df.loc[lastExon,"is_last_exon"] = True
+
+def defineFirstLastExon(df):
+    for _, group in df.groupby(['gene_id','transcript_id']):
+        strand_forward = group['is_foward_strand'].iloc[0]
+
+        if strand_forward:
+            first = group.index[0]
+            last = group.index[-1]
+        else:
+            first = group.index[-1]
+            last = group.index[0]
+
+        df.loc[first, 'is_first_exon'] = True
+        df.loc[last, 'is_last_exon'] = True
+
+def dropLastIntron(df):
     dfLocal = df.groupby(['gene_id', 'transcript_id'])
 
-    exonGroup1 = dfLocal.head(1).index
-    exonGroup2 = dfLocal.tail(1).index
-    firstExon = exonGroup1 if isFoward else exonGroup2
-    lastExon = exonGroup2 if isFoward else exonGroup1
-    df.loc[firstExon,"is_first_exon"] = True
-    df.loc[lastExon,"is_last_exon"] = True
-
-def dropLastIntron(df,isForward):
-    dfLocal = df.groupby(['gene_id', 'transcript_id'])
-
-    lastIntronId = dfLocal.tail(1).index if isForward else dfLocal.head(1).index
+    lastIntronId = dfLocal.tail(1).index
     df.drop(lastIntronId, inplace=True)
 
-def unifiedIntronExonDf(dfExon,dfIntron,isForward):
+def unifiedIntronExonDf(dfExon,dfIntron):
     df = pd.concat([dfExon, dfIntron]).sort_index().reset_index(drop=True)
-    df = df.sort_values(by=['gene_id', 'transcript_id', 'region_start'], ascending=isForward).reset_index(drop=True)
+    df = df.sort_values(by=['gene_id', 'transcript_id', 'region_start']).reset_index(drop=True)
 
     df['next_exon_start'] = np.where(df['is_exon'], df['region_start'], np.nan)
     df['next_exon_start'] = df['next_exon_start'].bfill()
     df.loc[df['is_intron'], 'region_end'] = df.loc[df['is_intron'], 'next_exon_start'] - 1
     df.drop(columns='next_exon_start', inplace=True)
-
-    if not isForward:
-        df = df.sort_values(by=['gene_id','transcript_id','region_start']).reset_index(drop=True)
 
     return df
 
@@ -87,31 +98,24 @@ def fillCsv(saveFilesBasePath,csvPath,isBaseline,hasBothFiles):
     df['is_last_exon'] = False
 
     # Basic Masks
-    isIntron, isExon, isForward = getMasks(df,["is_intron","is_exon","is_foward_strand"])
+    isIntron, isExon = getMasks(df,["is_intron","is_exon"])
     isNotIntronOrExon = ~isIntron & ~isExon
-    isReverse = ~isForward
 
-    dfExonForward, dfExonReverse, dfIntronForward, dfIntronReverse, dfNotIntronOrExon = getSubDfs(
+    dfExon, dfIntron, dfNotIntronOrExon = getSubDfs(
         df,
         [
-            [isExon,isForward],
-            [isExon,isReverse],
-            [isIntron,isForward],
-            [isIntron,isReverse],
+            [isExon],
+            [isIntron],
             [isNotIntronOrExon]
         ]
     )
 
-    defineFirstLastExon(dfExonForward,True)
-    defineFirstLastExon(dfExonReverse,False)
+    defineFirstLastExon(dfExon)
+    dropLastIntron(dfIntron)
 
-    dropLastIntron(dfIntronForward,True)
-    dropLastIntron(dfIntronReverse,False)
+    dfExonIntron = unifiedIntronExonDf(dfExon, dfIntron)
 
-    dfForward = unifiedIntronExonDf(dfExonForward, dfIntronForward, True)
-    dfReverse = unifiedIntronExonDf(dfExonReverse, dfIntronReverse, False)
-
-    df = pd.concat([dfForward, dfReverse, dfNotIntronOrExon]).sort_index().reset_index(drop=True)
+    df = pd.concat([dfExonIntron, dfNotIntronOrExon]).sort_index().reset_index(drop=True)
     df['region_end'] = pd.to_numeric(df['region_end'], downcast='integer', errors='coerce')
 
     startCodonDf = getCodonDf(df,'is_start_codon','start_codon_init')
@@ -149,10 +153,8 @@ def fillCsvPredict(genePredictDf, csvDf, csvPath):
 
 def filterDataframes(df,commonGenes,matchCommonValues,isBaseline):
     newDf = None
-    if matchCommonValues:
-        newDf = df[df['gene_string'].isin(commonGenes)].copy()
-    else:
-        newDf = df[~df['gene_string'].isin(commonGenes)].copy()
+    mask = df['gene_string'].isin(commonGenes)
+    newDf = df[mask if matchCommonValues else ~mask].copy()
 
     newDf["is_baseline"] = isBaseline
 

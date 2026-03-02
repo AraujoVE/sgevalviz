@@ -1,12 +1,15 @@
 import json
 import importlib.resources as resources
 import re
+import os
 
 parameters = {
     "--no-pre-process": "zero",
     "--no-split": "zero",
     "--candidate-config": "one",
     "--baseline-config": "one",
+    "--custom-candidate-config": "one",
+    "--custom-baseline-config": "one",
     "--region-size": "one"
 }
 
@@ -102,9 +105,17 @@ def updatedParam(paramVar, paramName, jsonData):
 from importlib import resources
 import json
 
-def loadConfig(config):
+def loadConfig(config, isStandardConfig):
     try:
-        json_str = resources.read_text("sgevalviz.configs", f"{config}.json", encoding="utf-8")
+        if isStandardConfig:
+            json_str = resources.read_text("sgevalviz.configs", f"{config}.json", encoding="utf-8")
+        else:
+            if not os.path.isabs(config):
+                raise ValueError(f"Expected an absolute path for config, got: {config}")
+            if not os.path.isfile(config):
+                raise FileNotFoundError(f"Config file not found: {config}")
+            with open(config, "r", encoding="utf-8") as f:
+                json_str = f.read()
         return json.loads(json_str)
     except FileNotFoundError:
         raise FileNotFoundError(f"Config file '{config}.json' not found in sgevalviz/configs/")
@@ -113,8 +124,8 @@ def loadConfig(config):
 
 
 
-def updateLineParamsToConfig(config, seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId):
-    jsonData = loadConfig(config)
+def updateLineParamsToConfig(config, isStandardConfig, seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId):
+    jsonData = loadConfig(config, isStandardConfig)
 
     falseReturn = [False for i in range(11)]
     
@@ -160,3 +171,8 @@ def updateLineParamsToConfig(config, seqname, source, featureType, startPos, end
 
     return True, seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId
     
+def getConfigType(standardConfig, customConfig):
+    config = standardConfig if customConfig == "" else customConfig
+    isStandardConfig = True if (standardConfig != "" and customConfig == "") else False
+
+    return config, isStandardConfig
