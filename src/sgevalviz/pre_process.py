@@ -135,7 +135,6 @@ def preProcessFile(baseDir, inputPath,outputPath, transcriptGenePath, splitByChr
 
 # Revised
 def fileDefinition(saveFilesBasePath):
-    saveFilesBasePath += "/" if saveFilesBasePath[-1] != "/" else ""
     basePath = f"{saveFilesBasePath}chromosomeCSVs/"
 
     if os.path.exists(basePath):
@@ -161,19 +160,17 @@ def fileDefinition(saveFilesBasePath):
 
 
 def preProcess(saveFilesBasePath,candidateFilePath, baselineFilePath, extraArgs):
-    executePreProcess = not checkParam(extraArgs,"--no-pre-process")[0]
-    if executePreProcess:
-        splitByChromosome = not checkParam(extraArgs,"--no-split")[0]
-        
-        standardCandidateConfig =  checkParam(extraArgs,"--candidate-config")[1] if checkParam(extraArgs,"--candidate-config")[0] else ""
-        customCandidateConfig =  checkParam(extraArgs,"--custom-candidate-config")[1] if checkParam(extraArgs,"--custom-candidate-config")[0] else ""
-        candidateConfig, isStandardCandidateConfig = getConfigType(standardCandidateConfig, customCandidateConfig)
-        
-        standardBaselineConfig =  checkParam(extraArgs,"--baseline-config")[1] if checkParam(extraArgs,"--baseline-config")[0] else ""
-        customBaselineConfig =  checkParam(extraArgs,"--custom-baseline-config")[1] if checkParam(extraArgs,"--custom-baseline-config")[0] else ""
-        baselineConfig, isStandardBaselineConfig = getConfigType(standardBaselineConfig, customBaselineConfig)
+    splitByChromosome = not checkParam(extraArgs,"--no-split")[0]
+    
+    standardCandidateConfig =  checkParam(extraArgs,"--candidate-config")[1] if checkParam(extraArgs,"--candidate-config")[0] else ""
+    customCandidateConfig =  checkParam(extraArgs,"--custom-candidate-config")[1] if checkParam(extraArgs,"--custom-candidate-config")[0] else ""
+    candidateConfig, isStandardCandidateConfig = getConfigType(standardCandidateConfig, customCandidateConfig)
+    
+    standardBaselineConfig =  checkParam(extraArgs,"--baseline-config")[1] if checkParam(extraArgs,"--baseline-config")[0] else ""
+    customBaselineConfig =  checkParam(extraArgs,"--custom-baseline-config")[1] if checkParam(extraArgs,"--custom-baseline-config")[0] else ""
+    baselineConfig, isStandardBaselineConfig = getConfigType(standardBaselineConfig, customBaselineConfig)
 
-        basePath, processedCandidateFile, processedBaselineFile, transcriptAndGeneCandidateFile, transcriptAndGeneBaselineFile = fileDefinition(saveFilesBasePath)
+    basePath, processedCandidateFile, processedBaselineFile, transcriptAndGeneCandidateFile, transcriptAndGeneBaselineFile = fileDefinition(saveFilesBasePath)
 
-        preProcessFile(basePath, candidateFilePath, processedCandidateFile, transcriptAndGeneCandidateFile, splitByChromosome,extraArgs,candidateConfig,isStandardCandidateConfig)
-        preProcessFile(basePath, baselineFilePath, processedBaselineFile, transcriptAndGeneBaselineFile, splitByChromosome,extraArgs,baselineConfig,isStandardBaselineConfig)
+    preProcessFile(basePath, candidateFilePath, processedCandidateFile, transcriptAndGeneCandidateFile, splitByChromosome,extraArgs,candidateConfig,isStandardCandidateConfig)
+    preProcessFile(basePath, baselineFilePath, processedBaselineFile, transcriptAndGeneBaselineFile, splitByChromosome,extraArgs,baselineConfig,isStandardBaselineConfig)

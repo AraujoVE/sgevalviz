@@ -5,6 +5,7 @@ import os
 
 parameters = {
     "--no-pre-process": "zero",
+    "--no-plot": "zero",
     "--no-split": "zero",
     "--candidate-config": "one",
     "--baseline-config": "one",
@@ -176,3 +177,31 @@ def getConfigType(standardConfig, customConfig):
     isStandardConfig = True if (standardConfig != "" and customConfig == "") else False
 
     return config, isStandardConfig
+
+def validateInputs(argv):    
+    validStatus = False
+    resultMsg = ""
+    if len(argv) < 4:
+        resultMsg = "Invalid number of arguments, should be: sgevalviz <savePath> <candidatePath> <baselinePath> [options]" 
+        return validStatus, resultMsg, None, None, None
+
+    saveFilesBasePath = argv[1]
+    if not os.path.isdir(saveFilesBasePath):
+        resultMsg = "Invalid argument: the first argument must be a folder"
+        return validStatus, resultMsg, None, None, None
+
+    saveFilesBasePath += "/" if saveFilesBasePath[-1] != "/" else ""
+
+    candidatePath = argv[2]
+    if not os.path.isfile(candidatePath):
+        resultMsg = "Invalid argument: the second argument must be a file"
+        return validStatus, resultMsg, None, None, None
+
+
+    baselinePath = argv[3]
+    if not os.path.isfile(baselinePath):
+        resultMsg = "Invalid argument: the second argument must be a file"
+        return validStatus, resultMsg, None, None, None
+
+    validStatus = True
+    return validStatus, resultMsg, saveFilesBasePath, candidatePath, baselinePath

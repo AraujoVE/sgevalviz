@@ -224,21 +224,19 @@ def appendFile(inputFile,outputFile):
         f_out.write(inputData)
 
 def fillData(saveFilesBasePath,extraArgs):
-    executeFillData = not checkParam(extraArgs,"--no-pre-process")[0]
-    if executeFillData:
-        chromosomeFolders = getChromosomeFolders(saveFilesBasePath)
-        for sf in chromosomeFolders:
-            if not (hasBaseline(sf) or hasCandidate(sf)):
-                continue
+    chromosomeFolders = getChromosomeFolders(saveFilesBasePath)
+    for sf in chromosomeFolders:
+        if not (hasBaseline(sf) or hasCandidate(sf)):
+            continue
 
-            if hasBaseline(sf):
-                baselineDf, baselineGeneStringDf = fillCsv(saveFilesBasePath,f"{sf}/processedBaselineFile.csv",True,hasCandidate(sf))
+        if hasBaseline(sf):
+            baselineDf, baselineGeneStringDf = fillCsv(saveFilesBasePath,f"{sf}/processedBaselineFile.csv",True,hasCandidate(sf))
 
-            if hasCandidate(sf):
-                candidateDf, candidateGeneStringDf = fillCsv(saveFilesBasePath,f"{sf}/processedCandidateFile.csv",False,hasBaseline(sf))
+        if hasCandidate(sf):
+            candidateDf, candidateGeneStringDf = fillCsv(saveFilesBasePath,f"{sf}/processedCandidateFile.csv",False,hasBaseline(sf))
 
-            if hasBaseline(sf) and hasCandidate(sf):
-                predictedDf = compareGenes(sf, baselineGeneStringDf, candidateGeneStringDf)
-                fillCsvPredict(predictedDf,baselineDf,f"{sf}/processedBaselineFile.csv")
-                fillCsvPredict(predictedDf,candidateDf,f"{sf}/processedCandidateFile.csv")
+        if hasBaseline(sf) and hasCandidate(sf):
+            predictedDf = compareGenes(sf, baselineGeneStringDf, candidateGeneStringDf)
+            fillCsvPredict(predictedDf,baselineDf,f"{sf}/processedBaselineFile.csv")
+            fillCsvPredict(predictedDf,candidateDf,f"{sf}/processedCandidateFile.csv")
 

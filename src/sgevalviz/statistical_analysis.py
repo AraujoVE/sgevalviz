@@ -508,15 +508,12 @@ def generateGeneralStatistics(saveFilesBasePath,filePath,statPath,regionSize,isB
         json.dump(generalStatistic, outputFile, indent=4)
 
 def statisticalAnalysis(saveFilesBasePath,extraArgs):
-
-    executeAnalysis = not checkParam(extraArgs,"--no-statistical-analysis")[0]
     regionSizeValid, regionSizeValue = checkParam(extraArgs,"--region-size")
     regionSize = int(regionSizeValue) if regionSizeValid else 100
     writeHeaders(saveFilesBasePath,["chromosomeCSVs/recallStatistics.csv","chromosomeCSVs/precisionStatistics.csv","chromosomeCSVs/gene_transcript_predicted.csv"],["identifier,value","identifier,value","chromosome_identifier,gene_id,transcript_id,start_gene,end_gene,start_transcript,end_transcript,exon_qtty,gene_string,predicted,is_baseline,gene_predicted"])
     
-    if executeAnalysis:
-        chromosomeFolders = getChromosomeFolders(saveFilesBasePath)
-        for cf in chromosomeFolders:
-            generateStatisticsPerFolder(saveFilesBasePath,cf,regionSize)
+    chromosomeFolders = getChromosomeFolders(saveFilesBasePath)
+    for cf in chromosomeFolders:
+        generateStatisticsPerFolder(saveFilesBasePath,cf,regionSize)
     generateGeneralStatistics(saveFilesBasePath,f"{saveFilesBasePath}chromosomeCSVs/recallStatistics.csv",f"{saveFilesBasePath}finalJsons/recallStatistics.json",regionSize,True)
     generateGeneralStatistics(saveFilesBasePath,f"{saveFilesBasePath}chromosomeCSVs/precisionStatistics.csv",f"{saveFilesBasePath}finalJsons/precisionStatistics.json",regionSize,False)
