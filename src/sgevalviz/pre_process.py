@@ -52,12 +52,12 @@ def getLineParams(line,config,isStandardConfig):
 
 
 def createRegionLine(chromosome_identifier, gene_id, transcript_id, is_exon , is_intron , is_start_codon, is_stop_codon, strand, region_start, region_end):
-    is_foward_strand = ("True" if strand == "+" else "False")
-    newLine = f"{chromosome_identifier},{gene_id},{transcript_id},{is_exon},{is_intron},{is_start_codon},{is_stop_codon},nan,nan,{is_foward_strand},{region_start},{region_end},nan\n"
+    is_forward_strand = ("True" if strand == "+" else "False")
+    newLine = f"{chromosome_identifier},{gene_id},{transcript_id},{is_exon},{is_intron},{is_start_codon},{is_stop_codon},nan,nan,nan,{is_forward_strand},{region_start},{region_end},nan\n"
     return newLine
 
 def getChromosomeIdentifier(seqname,strand,splitByChromosome):
-    strandName = f"{'foward' if strand == '+' else 'reverse'}_strand"
+    strandName = f"{'forward' if strand == '+' else 'reverse'}_strand"
     chromosomeName = f"{seqname}__{strandName}"
     chromosomeIdentifier = (chromosomeName if splitByChromosome else strandName)
 
@@ -78,8 +78,8 @@ def writeChromosomeFile(chromosomeIdentifier,baseDir,inputPath,inputPathTranscri
     fullTranscriptPath = f"{chromosomeNewDir}{transcriptGenePath}" 
     os.makedirs(chromosomeNewDir,exist_ok=True)
 
-    writeOnChromosomeFolder(inputPath,fullOutputPath,chromosomeIdentifier,"chromosome_identifier,gene_id,transcript_id,is_exon,is_intron,is_start_codon,is_stop_codon,is_first_exon,is_last_exon,is_foward_strand,region_start,region_end,predicted")
-    writeOnChromosomeFolder(inputPathTranscript,fullTranscriptPath,chromosomeIdentifier,"chromosome_identifier,gene_id,transcript_id,start_gene,end_gene,start_transcript,end_transcript")
+    writeOnChromosomeFolder(inputPath,fullOutputPath,chromosomeIdentifier,"chromosome_identifier,gene_id,transcript_id,is_exon,is_intron,is_start_codon,is_stop_codon,is_first_exon,is_last_exon,is_intron_retention_exon,is_forward_strand,region_start,region_end,predicted")
+    writeOnChromosomeFolder(inputPathTranscript,fullTranscriptPath,chromosomeIdentifier,"chromosome_identifier,gene_id,transcript_id,start_gene,end_gene,start_transcript,end_transcript,is_forward_strand")
 
     return
 
@@ -89,15 +89,15 @@ def isInvalidLine(line):
 
 def writeSinglePreProcess(inputPath,outputPath,transcriptGenePath,splitByChromosome,extraArgs,config,isStandardConfig):
     chromosomes = set()
-    geneDf = pd.DataFrame(columns=['chromosome_identifier','gene_id','start_gene','end_gene'])
-    transcriptDf = pd.DataFrame(columns=['chromosome_identifier','gene_id','transcript_id','start_transcript','end_transcript'])
+    geneDf = pd.DataFrame(columns=['chromosome_identifier','is_forward_strand','gene_id','start_gene','end_gene'])
+    transcriptDf = pd.DataFrame(columns=['chromosome_identifier','is_forward_strand','gene_id','transcript_id','start_transcript','end_transcript'])
     with open(inputPath, 'r') as f_in, open(outputPath, 'w') as f_out:
         for line in f_in:
             if isInvalidLine(line):
                 continue
 
             seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId = getLineParams(line,config,isStandardConfig)         
-
+            isForwardStrand = True if strand == "+" else False
             if featureType == False:
                 continue
             chromosomeIdentifier = getChromosomeIdentifier(seqname,strand,splitByChromosome)
@@ -114,14 +114,14 @@ def writeSinglePreProcess(inputPath,outputPath,transcriptGenePath,splitByChromos
                 startStopCodonLine = createRegionLine(chromosomeIdentifier,geneId,transcriptId,"False","False",isStartCodon,isStopCodon,strand,startPos,endPos)
                 f_out.write(startStopCodonLine)
             elif featureType == "gene":
-                newRow = {'chromosome_identifier':chromosomeIdentifier,'gene_id':geneId,'start_gene':startPos,'end_gene':endPos}
+                newRow = {'chromosome_identifier':chromosomeIdentifier,'is_forward_strand': isForwardStrand,'gene_id':geneId,'start_gene':startPos,'end_gene':endPos}
                 geneDf = pd.concat([geneDf, pd.DataFrame([newRow])], ignore_index=True)
             elif featureType == "transcript":
-                newRow = {'chromosome_identifier':chromosomeIdentifier,'gene_id':geneId,'transcript_id':transcriptId,'start_transcript':startPos,'end_transcript':endPos}
+                newRow = {'chromosome_identifier':chromosomeIdentifier,'is_forward_strand': isForwardStrand,'gene_id':geneId,'transcript_id':transcriptId,'start_transcript':startPos,'end_transcript':endPos}
                 transcriptDf = pd.concat([transcriptDf, pd.DataFrame([newRow])], ignore_index=True)
 
-    geneTranscriptDf = pd.merge(transcriptDf,geneDf,on=['chromosome_identifier','gene_id'],how='left')
-    geneTranscriptDf = geneTranscriptDf[["chromosome_identifier","gene_id","transcript_id","start_gene","end_gene","start_transcript","end_transcript"]]
+    geneTranscriptDf = pd.merge(transcriptDf,geneDf,on=['chromosome_identifier','gene_id','is_forward_strand'],how='left')
+    geneTranscriptDf = geneTranscriptDf[["chromosome_identifier","gene_id","transcript_id","start_gene","end_gene","start_transcript","end_transcript","is_forward_strand"]]
     geneTranscriptDf.to_csv(transcriptGenePath, encoding='utf-8', index=False)
     return chromosomes
 

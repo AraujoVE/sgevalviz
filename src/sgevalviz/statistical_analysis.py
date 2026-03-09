@@ -33,9 +33,68 @@ def countTrueValues(masks):
 def countTotalSizeSum(regionLength, maskList):
     return [(regionLength[mask]).sum() for mask in maskList]
 
-def regionPredictionData(mainDf,regionSize):
+def getStrandedVersionOfList(preDfListGeneral,isForwardStrand):
+    strandString = "forward" if isForwardStrand == True else "reverse"
+    preDfListStranded = [(f"{i}_{strandString}",v) for i, v in preDfListGeneral]
+
+    return preDfListStranded
+
+def getEmptyDf(hasForwardStrand, hasReverseStrand, hasTotal, useDf):
+    basePredictionData = [(pair,0) for pair in [
+        "exons_total",
+        "introns_total",
+        "start_codons_total",
+        "stop_codons_total",
+        "first_exons_only_total",
+        "last_exons_only_total",
+        "single_exons_total",
+        "donors",
+        "acceptors",
+        "exons_predicted",
+        "exons_unpredicted",
+        "introns_predicted",
+        "introns_unpredicted",
+        "start_codons_predicted",
+        "start_codons_unpredicted",
+        "stop_codons_predicted",
+        "stop_codons_unpredicted",
+        "first_exons_only_predicted",
+        "first_exons_only_unpredicted",
+        "last_exons_only_predicted",
+        "last_exons_only_unpredicted",
+        "single_exons_predicted",
+        "single_exons_unpredicted",
+        "donors_predicted",
+        "donors_unpredicted",
+        "acceptors_predicted",
+        "acceptors_unpredicted",
+        "exons_total_size_sum",
+        "introns_total_size_sum",
+        "first_exons_only_total_size_sum",
+        "last_exons_only_total_size_sum",
+        "single_exons_total_size_sum",
+        "exons_predicted_size_sum",
+        "exons_unpredicted_size_sum",
+        "introns_predicted_size_sum",
+        "introns_unpredicted_size_sum",
+        "first_exons_only_predicted_size_sum",
+        "first_exons_only_unpredicted_size_sum",
+        "last_exons_only_predicted_size_sum",
+        "last_exons_only_unpredicted_size_sum",
+        "single_exons_predicted_size_sum",
+        "single_exons_unpredicted_size_sum"
+    ]]
+    predictionData = basePredictionData if hasTotal else []
+    predictionData += getStrandedVersionOfList(basePredictionData,True) if hasForwardStrand else []
+    predictionData += getStrandedVersionOfList(basePredictionData,False) if hasReverseStrand else []
+
+    predictionDataDf = pd.DataFrame(predictionData, columns=["identifier", "value"])
+
+    return predictionDataDf if useDf else predictionData 
+
+def regionPredictionData(mainDf, isForwardStrand):
     predictionData = []
-    
+
     # Intermediate Dfs
     exonDf = mainDf.loc[mainDf['is_exon']]
     intronDf = mainDf.loc[mainDf['is_intron']]
@@ -74,7 +133,7 @@ def regionPredictionData(mainDf,regionSize):
     totalFirstExonsOnlySizeSum, totalLastExonsOnlySizeSum, totalSingleExonsSizeSum, successFirstExonsOnlySizeSum, successLastExonsOnlySizeSum, successSingleExonsSizeSum = countTotalSizeSum(firstsDfRegionLength,[isFirstExonOnly,isLastExonOnly,isSingleExon,isFirstExonOnlyPredicted,isLastExonOnlyPredicted,isSingleExonPredicted])
 
     # Write Data
-    predictionData = [
+    predictionDataGeneral = [
         #Total Count of Values, in general
         ("exons_total", totalExons),
         ("introns_total", totalIntrons),
@@ -122,57 +181,9 @@ def regionPredictionData(mainDf,regionSize):
         ("single_exons_predicted_size_sum", successSingleExonsSizeSum),
         ("single_exons_unpredicted_size_sum", totalSingleExonsSizeSum - successSingleExonsSizeSum)
     ]
-    
-    predictionDataDf = pd.DataFrame(predictionData, columns=["identifier", "value"])
-
-    return predictionDataDf
-
-def emptyDf():
-    predictionData = [(pair,0) for pair in [
-        "exons_total",
-        "introns_total",
-        "start_codons_total",
-        "stop_codons_total",
-        "first_exons_only_total",
-        "last_exons_only_total",
-        "single_exons_total",
-        "donors",
-        "acceptors",
-        "exons_predicted",
-        "exons_unpredicted",
-        "introns_predicted",
-        "introns_unpredicted",
-        "start_codons_predicted",
-        "start_codons_unpredicted",
-        "stop_codons_predicted",
-        "stop_codons_unpredicted",
-        "first_exons_only_predicted",
-        "first_exons_only_unpredicted",
-        "last_exons_only_predicted",
-        "last_exons_only_unpredicted",
-        "single_exons_predicted",
-        "single_exons_unpredicted",
-        "donors_predicted",
-        "donors_unpredicted",
-        "acceptors_predicted",
-        "acceptors_unpredicted",
-        "exons_total_size_sum",
-        "introns_total_size_sum",
-        "first_exons_only_total_size_sum",
-        "last_exons_only_total_size_sum",
-        "single_exons_total_size_sum",
-        "exons_predicted_size_sum",
-        "exons_unpredicted_size_sum",
-        "introns_predicted_size_sum",
-        "introns_unpredicted_size_sum",
-        "first_exons_only_predicted_size_sum",
-        "first_exons_only_unpredicted_size_sum",
-        "last_exons_only_predicted_size_sum",
-        "last_exons_only_unpredicted_size_sum",
-        "single_exons_predicted_size_sum",
-        "single_exons_unpredicted_size_sum"
-    ]]
-
+    strandedList = getStrandedVersionOfList(predictionDataGeneral,isForwardStrand)
+    emptyList = getEmptyDf(not isForwardStrand,isForwardStrand,False,False)
+    predictionData = predictionDataGeneral + strandedList + emptyList
     predictionDataDf = pd.DataFrame(predictionData, columns=["identifier", "value"])
 
     return predictionDataDf
@@ -222,10 +233,10 @@ def pairColumnPredicted(df,mask,listOfPairs):
         pd.MultiIndex.from_arrays([df.loc[mask, "region_start"], df.loc[mask, "region_end"]]).isin(listOfPairs)
     )
 
-def setNumericalStatisticsSingleFile(mainDf,comparisonDf,saveFilePath,saveFilePathFinal,regionSize,nucleotidesFilePath):
+def setNumericalStatisticsSingleFile(mainDf,comparisonDf,saveFilePath,saveFilePathFinal,nucleotidesFilePath,isForwardStrand):
 
     if mainDf is None:
-        saveDf = emptyDf()
+        saveDf = getEmptyDf(True,True,True,True)
         nucleotideDf = pd.DataFrame(columns=["gene_id", "nucleotides"])
     else:
         df = mainDf.copy()
@@ -261,7 +272,8 @@ def setNumericalStatisticsSingleFile(mainDf,comparisonDf,saveFilePath,saveFilePa
             .apply(nucleotidesByGene)
             .reset_index(name="nucleotides")
         )
-        saveDf = regionPredictionData(df,regionSize)
+        nucleotideDf["is_forward_strand"] = isForwardStrand
+        saveDf = regionPredictionData(df,isForwardStrand)
 
     saveDf.to_csv(saveFilePath, encoding='utf-8', index=False)
     saveDf.to_csv(saveFilePathFinal, encoding='utf-8', mode="a", index=False, header=False)    
@@ -280,7 +292,7 @@ def computeNucleotideSet(df):
 
     return df, nucleotidesSet
 
-def writeNucleotides(saveFilesBasePath,chromosomeFolder):
+def writeNucleotides(saveFilesBasePath,chromosomeFolder,isForwardStrand):
     recallChromosomeCsv = f"{chromosomeFolder}/recallStatistics.csv"
     baselineNucleotidesCsv = f"{chromosomeFolder}/baselineNucleotides.csv"
     recallCsv = f"{saveFilesBasePath}chromosomeCSVs/recallStatistics.csv"
@@ -307,7 +319,7 @@ def writeNucleotides(saveFilesBasePath,chromosomeFolder):
     intersectionNucleotidesSize = len(intersectionNucleotides)
 
 
-    recallData = [
+    recallDataBase = [
         ("nucleotides_total", baselineNucleotidesSize),
         ("nucleotides_predicted", intersectionNucleotidesSize),
         ("nucleotides_unpredicted", (baselineNucleotidesSize - intersectionNucleotidesSize)),
@@ -315,8 +327,10 @@ def writeNucleotides(saveFilesBasePath,chromosomeFolder):
         ("gene_ignored", recallGenesIgnored),
         ("gene_not_ignored", recallGenesNotIgnored)
     ]
+    recallDataStranded = getStrandedVersionOfList(recallDataBase,isForwardStrand) 
+    recallData = recallDataBase + recallDataStranded
 
-    precisionData = [
+    precisionDataBase = [
         ("nucleotides_total", candidateNucleotidesSize),
         ("nucleotides_predicted", intersectionNucleotidesSize),
         ("nucleotides_unpredicted", (candidateNucleotidesSize - intersectionNucleotidesSize)),
@@ -324,6 +338,8 @@ def writeNucleotides(saveFilesBasePath,chromosomeFolder):
         ("gene_ignored", precisionGenesIgnored),
         ("gene_not_ignored", precisionGenesNotIgnored)
     ]
+    precisionDataStranded = getStrandedVersionOfList(precisionDataBase,isForwardStrand)
+    precisionData = precisionDataBase + precisionDataStranded
 
     recallDataDf = pd.DataFrame(recallData, columns=["identifier", "value"])
     precisionDataDf = pd.DataFrame(precisionData, columns=["identifier", "value"])
@@ -335,17 +351,25 @@ def writeNucleotides(saveFilesBasePath,chromosomeFolder):
     precisionDataDf.to_csv(precisionChromosomeCsv, encoding='utf-8', mode="a", index=False, header=False)
     precisionDataDf.to_csv(precisionCsv, encoding='utf-8', mode="a", index=False, header=False)
 
-def generateStatisticsPerFolder(saveFilesBasePath,sf,regionSize):
+def moveGeneTranscript(saveFilesBasePath,sf):
+    with open(f"{sf}/gene_transcript_predicted.csv","r") as f_in, open(f"{saveFilesBasePath}chromosomeCSVs/gene_transcript_predicted.csv","a") as f_out:
+        content = f_in.read()
+        noHeaderContent = content.split("\n",1)[1]
+        f_out.write(noHeaderContent)
+
+def generateStatisticsPerFolder(saveFilesBasePath,sf):
     hasBaseline = os.path.exists(f"{sf}/processedBaselineFile.csv")
     hasCandidate = os.path.exists(f"{sf}/processedCandidateFile.csv")
 
     baselineDf = pd.read_csv(f"{sf}/processedBaselineFile.csv") if hasBaseline else None
     candidateDf = pd.read_csv(f"{sf}/processedCandidateFile.csv") if hasCandidate else None
-
-    setNumericalStatisticsSingleFile(baselineDf,candidateDf,f"{sf}/recallStatistics.csv",f"{saveFilesBasePath}chromosomeCSVs/recallStatistics.csv",regionSize,f"{sf}/baselineNucleotides.csv")
-    setNumericalStatisticsSingleFile(candidateDf,baselineDf,f"{sf}/precisionStatistics.csv",f"{saveFilesBasePath}chromosomeCSVs/precisionStatistics.csv",regionSize,f"{sf}/candidateNucleotides.csv")    
+    isForwardStrand = baselineDf["is_forward_strand"].iloc[0] if hasBaseline else candidateDf["is_forward_strand"].iloc[0]
     
-    writeNucleotides(saveFilesBasePath,sf)
+
+    setNumericalStatisticsSingleFile(baselineDf,candidateDf,f"{sf}/recallStatistics.csv",f"{saveFilesBasePath}chromosomeCSVs/recallStatistics.csv",f"{sf}/baselineNucleotides.csv",isForwardStrand)
+    setNumericalStatisticsSingleFile(candidateDf,baselineDf,f"{sf}/precisionStatistics.csv",f"{saveFilesBasePath}chromosomeCSVs/precisionStatistics.csv",f"{sf}/candidateNucleotides.csv",isForwardStrand)
+    
+    writeNucleotides(saveFilesBasePath,sf,isForwardStrand)
     moveGeneTranscript(saveFilesBasePath,sf)
 
 def writeHeaders(saveFilesBasePath,paths,contents):
@@ -353,29 +377,11 @@ def writeHeaders(saveFilesBasePath,paths,contents):
         with open(f"{saveFilesBasePath}{paths[i]}",'w') as f:
             f.write(f"{contents[i]}\n")
 
-def moveGeneTranscript(saveFilesBasePath,sf):
-    with open(f"{sf}/gene_transcript_predicted.csv","r") as f_in, open(f"{saveFilesBasePath}chromosomeCSVs/gene_transcript_predicted.csv","a") as f_out:
-        content = f_in.read()
-        noHeaderContent = content.split("\n",1)[1]
-        f_out.write(noHeaderContent)
-
 def getIntDivision(v1,v2,multiplier=1):
     if v2 == 0:
         return None
     
     return round(multiplier*(v1/v2),6)
-
-def getSizeStatistic(df, isGenePredicted, isTranscriptPredicted):
-    matches = df.loc[
-        (df["gene_predicted"] == isGenePredicted) &
-        (df["predicted"] == isTranscriptPredicted),
-        "exon_qtty"
-    ]
-    
-    if matches.empty:
-        return None  # or 0, or float("nan"), depending on what makes sense
-    
-    return matches.iat[0]
 
 def getGroupedDataDf(df,maxPos):
     identifiers = df["identifier"].unique()
@@ -387,73 +393,192 @@ def getGroupedDataDf(df,maxPos):
 
     return filledDf
 
-def breakDf(filePath):
-    baseDf = pd.read_csv(filePath)
-    baseDf = baseDf.groupby(["identifier"], as_index=False)["value"].sum()
-    newDf = baseDf.copy()
-    return newDf
-
 def getTotals(df,cols):
     return [df.loc[df["identifier"] == col,"value"].iloc[0] for col in cols]
 
-def getDivisions(df,dictVar,listOfTriads,multiplier=1):
-    valueMap = df.set_index("identifier")["value"]
+def calcAvg(dividend, divisor, multiplier=1):
+    dividendSum = sum(dividend) if isinstance(dividend, list) else dividend
+    divisorSum = sum(divisor) if isinstance(divisor, list) else divisor
+    return round((multiplier*dividendSum) / divisorSum, 6) if divisorSum != 0 else None
+
+def getDivisions(series,dictVar,listOfTriads,multiplier=1):
     for key, dividend, divisor in listOfTriads:
-        par1 = valueMap[dividend]
-        par2 = valueMap[divisor]
-        dictVar[key] = None if par2 == 0 else round(multiplier * (par1 / par2), 6)
+        par1Fwd = series[f"{dividend}_forward"]
+        par2Fwd = series[f"{divisor}_forward"]
+        fwdValue = calcAvg(par1Fwd,par2Fwd,multiplier)
+
+        par1Rev = series[f"{dividend}_reverse"]
+        par2Rev = series[f"{divisor}_reverse"]
+        revValue = calcAvg(par1Rev,par2Rev,multiplier)
+
+        par1Tot = series[f"{dividend}"]
+        par2Tot = series[f"{divisor}"]
+        totValue = calcAvg(par1Tot,par2Tot,multiplier)
+
+        dictVar[f"{key}_forward"] = fwdValue
+        dictVar[f"{key}_reverse"] = revValue
+        dictVar[f"{key}"] = totValue
 
 def getIntDivisions(dictVar,listOfTriads,multiplier=1):
     for key, dividend, divisor in listOfTriads:
         dictVar[key] = getIntDivision(dividend,divisor,multiplier)
 
-def getSizeStatistics(df,dictVar,listOfTriads):
-    for key, isGenePredicted, isTranscriptPredicted in listOfTriads:
-        dictVar[key] = getSizeStatistic(df,isGenePredicted,isTranscriptPredicted)
-
-def initializeStatisticGroup(dictVar,groupIter,regionSize):
-    dictVar["groups"][str(groupIter)] = {"size_range": f"{groupIter*regionSize} - {groupIter*regionSize + regionSize - 1}", "data": {}}
-
-def getGenesData(saveFilesBasePath,isBaseline):
+def getSeries(saveFilesBasePath,mainFilePath,isBaseline):
+    #Genes Dfs
     genesDf = pd.read_csv(f"{saveFilesBasePath}chromosomeCSVs/gene_transcript_predicted.csv")
     genesDf = genesDf.loc[genesDf["is_baseline"] == isBaseline]
-    
-    genesSizeDf = (genesDf.groupby(["gene_predicted","predicted"])["exon_qtty"].mean().reset_index())
-    genesGrouped = (genesDf.groupby(["chromosome_identifier","gene_id"])["gene_predicted"].any().reset_index())
 
-    totalGenes = len(genesGrouped)
-
-    predictedPercentage, unpredictedPercentage = None, None
-
-    if totalGenes != 0:
-        predictedGenes = genesGrouped["gene_predicted"].sum()
-        predictedPercentage = round(100*(predictedGenes / totalGenes),6)
-        unpredictedPercentage = round(100 - predictedPercentage,6)
-
-    return genesSizeDf, predictedPercentage, unpredictedPercentage    
-
-def generateGeneralStatistics(saveFilesBasePath,filePath,statPath,regionSize,isBaseline):
-    generalStatistic = {}
-
-    genesSizeDf, predictedPercentage, unpredictedPercentage = getGenesData(saveFilesBasePath,isBaseline)
-
-    df = breakDf(filePath)
-
-    getSizeStatistics(
-        genesSizeDf,
-        generalStatistic,
-        [
-            ["exons_in_predicted_genes_predicted_transcripts",True,True],
-            ["exons_in_predicted_genes_unpredicted_transcripts",True,False],
-            ["exons_in_unpredicted_genes",False,False]
-        ]
+    genesSizeSeries = genesDf.groupby(["gene_predicted","predicted","is_forward_strand"]
+    ).agg(
+        exon_sum=('exon_qtty', 'sum'),
+        exon_qtty=('exon_qtty', 'size'),
+        intron_retention_sum=('intron_retention_qtty', 'sum')
     )
 
-    generalStatistic["genes_predicted_percentage"] = predictedPercentage
-    generalStatistic["genes_unpredicted_percentage"] = unpredictedPercentage
+    genesGroupedGeneral = (
+        genesDf.groupby(["chromosome_identifier","gene_id","is_forward_strand"])["gene_predicted"]
+        .any()
+    )
+
+    genesPercentageSeries = genesGroupedGeneral.groupby("is_forward_strand").agg(
+        predicted_sum='sum',
+        gene_qtty='size'
+    )
+
+    genesPercentageSeries["unpredicted_sum"] = (genesPercentageSeries["gene_qtty"] - genesPercentageSeries["predicted_sum"])
+
+    # Main series
+    baseDf = pd.read_csv(mainFilePath)
+    mainSeries = baseDf.groupby(["identifier"])["value"].sum()
+
+
+    return genesSizeSeries, genesPercentageSeries, mainSeries
+
+def getSingleExonSumAndQtty(df, genePredicted, transcriptPredicted, isForwardStrand):
+    key = (genePredicted, transcriptPredicted, isForwardStrand)
+
+    if key not in df.index:
+        return 0, 0, 0
+    
+    row = df.loc[key]
+    return row["exon_sum"], row["intron_retention_sum"], row["exon_qtty"]
+
+def getSingleGenePred(df, isForwardStrand):
+    key = isForwardStrand
+
+    if key not in df.index:
+        return 0, 0, 0
+    
+    row = df.loc[key]
+
+    return row["predicted_sum"], row["unpredicted_sum"], row["gene_qtty"]
+
+def getExonSizeStatistics(df,generalStatistic):
+    # Total number & quantity of exons in genes that were successfully predicted and transcripts that were successfully predicted
+    fwdGenePredTranscPredExonSum, fwdGenePredTranscPredIntronRetentionSum, fwdGenePredTranscPredExonQtty = getSingleExonSumAndQtty(df,True,True,True)
+    revGenePredTranscPredExonSum, revGenePredTranscPredIntronRetentionSum, revGenePredTranscPredExonQtty = getSingleExonSumAndQtty(df,True,True,False)
+    # Exon Quantity
+    fwdGenePredTranscPredExonAvg = calcAvg(fwdGenePredTranscPredExonSum,fwdGenePredTranscPredExonQtty)
+
+    revGenePredTranscPredExonAvg = calcAvg(revGenePredTranscPredExonSum,revGenePredTranscPredExonQtty)
+    totalGenePredTranscPredExonAvg = calcAvg([fwdGenePredTranscPredExonSum,revGenePredTranscPredExonSum],[fwdGenePredTranscPredExonQtty,revGenePredTranscPredExonQtty])
+    # Exon of Intron Retention Quantity
+    fwdGenePredTranscPredIntronRetentionAvg = calcAvg(fwdGenePredTranscPredIntronRetentionSum,fwdGenePredTranscPredExonQtty)
+    revGenePredTranscPredIntronRetentionAvg = calcAvg(revGenePredTranscPredIntronRetentionSum,revGenePredTranscPredExonQtty)
+    totalGenePredTranscPredIntronRetentionAvg = calcAvg([fwdGenePredTranscPredIntronRetentionSum,revGenePredTranscPredIntronRetentionSum],[fwdGenePredTranscPredExonQtty,revGenePredTranscPredExonQtty])
+
+
+    # Total number & quantity of exons in genes that were successfully predicted and transcripts that were successfully predicted
+    fwdGenePredTranscUnpredExonSum, fwdGenePredTranscUnpredIntronRetentionSum, fwdGenePredTranscUnpredExonQtty = getSingleExonSumAndQtty(df,True,False,True)
+    revGenePredTranscUnpredExonSum, revGenePredTranscUnpredIntronRetentionSum, revGenePredTranscUnpredExonQtty = getSingleExonSumAndQtty(df,True,False,False)
+    # Exon Quantity
+    fwdGenePredTranscUnpredExonAvg = calcAvg(fwdGenePredTranscUnpredExonSum,fwdGenePredTranscUnpredExonQtty)
+    revGenePredTranscUnpredExonAvg = calcAvg(revGenePredTranscUnpredExonSum,revGenePredTranscUnpredExonQtty)
+    totalGenePredTranscUnpredExonAvg = calcAvg([fwdGenePredTranscUnpredExonSum,revGenePredTranscUnpredExonSum],[fwdGenePredTranscUnpredExonQtty,revGenePredTranscUnpredExonQtty])
+    # Exon of Intron Retention Quantity
+    fwdGenePredTranscUnpredIntronRetentionAvg = calcAvg(fwdGenePredTranscUnpredIntronRetentionSum,fwdGenePredTranscUnpredExonQtty)
+    revGenePredTranscUnpredIntronRetentionAvg = calcAvg(revGenePredTranscUnpredIntronRetentionSum,revGenePredTranscUnpredExonQtty)
+    totalGenePredTranscUnpredIntronRetentionAvg = calcAvg([fwdGenePredTranscUnpredIntronRetentionSum,revGenePredTranscUnpredIntronRetentionSum],[fwdGenePredTranscUnpredExonQtty,revGenePredTranscUnpredExonQtty])
+
+    # Total number & quantity of exons in genes that were not predicted by any transcript
+    fwdGeneUnpredTranscUnpredExonSum, fwdGeneUnpredTranscUnpredIntronRetentionSum, fwdGeneUnpredTranscUnpredExonQtty = getSingleExonSumAndQtty(df,False,False,True)
+    revGeneUnpredTranscUnpredExonSum, revGeneUnpredTranscUnpredIntronRetentionSum, revGeneUnpredTranscUnpredExonQtty = getSingleExonSumAndQtty(df,False,False,False)
+    # Exon Quantity
+    fwdGeneUnpredTranscUnpredExonAvg = calcAvg(fwdGeneUnpredTranscUnpredExonSum,fwdGeneUnpredTranscUnpredExonQtty)
+    revGeneUnpredTranscUnpredExonAvg = calcAvg(revGeneUnpredTranscUnpredExonSum,revGeneUnpredTranscUnpredExonQtty)
+    totalGeneUnpredTranscUnpredExonAvg = calcAvg([fwdGeneUnpredTranscUnpredExonSum,revGeneUnpredTranscUnpredExonSum],[fwdGeneUnpredTranscUnpredExonQtty,revGeneUnpredTranscUnpredExonQtty])
+    # Exon of Intron Retention Quantity
+    fwdGeneUnpredTranscUnpredIntronRetentionAvg = calcAvg(fwdGeneUnpredTranscUnpredIntronRetentionSum,fwdGeneUnpredTranscUnpredExonQtty)
+    revGeneUnpredTranscUnpredIntronRetentionAvg = calcAvg(revGeneUnpredTranscUnpredIntronRetentionSum,revGeneUnpredTranscUnpredExonQtty)
+    totalGeneUnpredTranscUnpredIntronRetentionAvg = calcAvg([fwdGeneUnpredTranscUnpredIntronRetentionSum,revGeneUnpredTranscUnpredIntronRetentionSum],[fwdGeneUnpredTranscUnpredExonQtty,revGeneUnpredTranscUnpredExonQtty])
+
+
+    #Updating generalStatistics
+    # Exons: Predicted Genes and Predicted Transcripts
+    generalStatistic["exons_in_predicted_genes_predicted_transcripts_forward"] = fwdGenePredTranscPredExonAvg
+    generalStatistic["exons_in_predicted_genes_predicted_transcripts_reverse"] = revGenePredTranscPredExonAvg
+    generalStatistic["exons_in_predicted_genes_predicted_transcripts"] = totalGenePredTranscPredExonAvg
+    # Exons: Predicted Genes and Unpredicted Transcripts
+    generalStatistic["exons_in_predicted_genes_unpredicted_transcripts_forward"] = fwdGenePredTranscUnpredExonAvg
+    generalStatistic["exons_in_predicted_genes_unpredicted_transcripts_reverse"] = revGenePredTranscUnpredExonAvg
+    generalStatistic["exons_in_predicted_genes_unpredicted_transcripts"] = totalGenePredTranscUnpredExonAvg
+    # Exons: Unpredicted Genes and Unpredicted Transcripts
+    generalStatistic["exons_in_unpredicted_genes_unpredicted_transcripts_forward"] = fwdGeneUnpredTranscUnpredExonAvg
+    generalStatistic["exons_in_unpredicted_genes_unpredicted_transcripts_reverse"] = revGeneUnpredTranscUnpredExonAvg
+    generalStatistic["exons_in_unpredicted_genes_unpredicted_transcripts"] = totalGeneUnpredTranscUnpredExonAvg
+    # Intron Retention Exons: Predicted Genes and Predicted Transcripts
+    generalStatistic["intron_retention_exons_in_predicted_genes_predicted_transcripts_forward"] = fwdGenePredTranscPredIntronRetentionAvg
+    generalStatistic["intron_retention_exons_in_predicted_genes_predicted_transcripts_reverse"] = revGenePredTranscPredIntronRetentionAvg
+    generalStatistic["intron_retention_exons_in_predicted_genes_predicted_transcripts"] = totalGenePredTranscPredIntronRetentionAvg
+    # Intron Retention Exons: Predicted Genes and Unpredicted Transcripts
+    generalStatistic["intron_retention_exons_in_predicted_genes_unpredicted_transcripts_forward"] = fwdGenePredTranscUnpredIntronRetentionAvg
+    generalStatistic["intron_retention_exons_in_predicted_genes_unpredicted_transcripts_reverse"] = revGenePredTranscUnpredIntronRetentionAvg
+    generalStatistic["intron_retention_exons_in_predicted_genes_unpredicted_transcripts"] = totalGenePredTranscUnpredIntronRetentionAvg
+    # Intron Retention Exons: Unpredicted Genes and Unpredicted Transcripts
+    generalStatistic["intron_retention_exons_in_unpredicted_genes_unpredicted_transcripts_forward"] = fwdGeneUnpredTranscUnpredIntronRetentionAvg
+    generalStatistic["intron_retention_exons_in_unpredicted_genes_unpredicted_transcripts_reverse"] = revGeneUnpredTranscUnpredIntronRetentionAvg
+    generalStatistic["intron_retention_exons_in_unpredicted_genes_unpredicted_transcripts"] = totalGeneUnpredTranscUnpredIntronRetentionAvg
+
+    return
+
+def getPredictionPercentageStatistics(df,generalStatistics):
+    # Genes total size, total predicted, unpredicted and percentage
+
+    # in the Forward Strand
+    fwdGenePredSum, fwdGeneUnpredSum, fwdGeneQtty = getSingleGenePred(df,True) 
+    fwdGenePredPerc = calcAvg(fwdGenePredSum,fwdGeneQtty,100)
+    fwdGeneUnpredPerc = calcAvg(fwdGeneUnpredSum,fwdGeneQtty,100)
+
+    # in the Reverse Strand
+    revGenePredSum, revGeneUnpredSum, revGeneQtty = getSingleGenePred(df,False)
+    revGenePredPerc = calcAvg(revGenePredSum,revGeneQtty,100)
+    revGeneUnpredPerc = calcAvg(revGeneUnpredSum,revGeneQtty,100)
+
+    #in Total
+    totalGenePredPerc = calcAvg([fwdGenePredSum,revGenePredSum],[fwdGeneQtty,revGeneQtty],100)
+    totalGeneUnpredPerc = calcAvg([fwdGeneUnpredSum,revGeneUnpredSum],[fwdGeneQtty,revGeneQtty],100)
+
+    #Updating generalStatistics
+    # Genes Predicted
+    generalStatistics["genes_predicted_percentage_forward"] = fwdGenePredPerc
+    generalStatistics["genes_predicted_percentage_reverse"] = revGenePredPerc
+    generalStatistics["genes_predicted_percentage"] = totalGenePredPerc
+    # Genes Unpredicted
+    generalStatistics["genes_unpredicted_percentage_forward"] = fwdGeneUnpredPerc
+    generalStatistics["genes_unpredicted_percentage_reverse"] = revGeneUnpredPerc
+    generalStatistics["genes_unpredicted_percentage"] = totalGeneUnpredPerc
+
+    return
+
+def generateGeneralStatistics(saveFilesBasePath,filePath,statPath,isBaseline):
+    generalStatistic = {}
+    genesSizeSeries, genesPercentageSeries, mainSeries = getSeries(saveFilesBasePath,filePath,isBaseline)
+
+    getExonSizeStatistics(genesSizeSeries,generalStatistic)
+    getPredictionPercentageStatistics(genesPercentageSeries, generalStatistic)
 
     getDivisions(
-        df,
+        mainSeries,
         generalStatistic,
         [
             ["genes_ignored_percentage","gene_ignored","gene_total_size"],
@@ -483,7 +608,7 @@ def generateGeneralStatistics(saveFilesBasePath,filePath,statPath,regionSize,isB
     )
 
     getDivisions(
-        df,
+        mainSeries,
         generalStatistic,
         [
             ["exons_total_size_avg","exons_total_size_sum","exons_total"],
@@ -507,13 +632,21 @@ def generateGeneralStatistics(saveFilesBasePath,filePath,statPath,regionSize,isB
     with open(statPath,"w") as outputFile:
         json.dump(generalStatistic, outputFile, indent=4)
 
+def generateMultipleGeneralStatistics(saveFilesBasePath):
+    filePathRecall = f"{saveFilesBasePath}chromosomeCSVs/recallStatistics.csv"
+    statPathRecall = f"{saveFilesBasePath}finalJsons/recallStatistics.json"
+
+    filePathPrecision = f"{saveFilesBasePath}chromosomeCSVs/precisionStatistics.csv"
+    statPathPrecision = f"{saveFilesBasePath}finalJsons/precisionStatistics.json"
+
+    generateGeneralStatistics(saveFilesBasePath,filePathRecall,statPathRecall,True)
+    generateGeneralStatistics(saveFilesBasePath,filePathPrecision,statPathPrecision,False)
+
+
 def statisticalAnalysis(saveFilesBasePath,extraArgs):
-    regionSizeValid, regionSizeValue = checkParam(extraArgs,"--region-size")
-    regionSize = int(regionSizeValue) if regionSizeValid else 100
-    writeHeaders(saveFilesBasePath,["chromosomeCSVs/recallStatistics.csv","chromosomeCSVs/precisionStatistics.csv","chromosomeCSVs/gene_transcript_predicted.csv"],["identifier,value","identifier,value","chromosome_identifier,gene_id,transcript_id,start_gene,end_gene,start_transcript,end_transcript,exon_qtty,gene_string,predicted,is_baseline,gene_predicted"])
+    writeHeaders(saveFilesBasePath,["chromosomeCSVs/recallStatistics.csv","chromosomeCSVs/precisionStatistics.csv","chromosomeCSVs/gene_transcript_predicted.csv"],["identifier,value","identifier,value","chromosome_identifier,gene_id,transcript_id,start_gene,end_gene,start_transcript,end_transcript,exon_qtty,intron_retention_qtty,gene_string,is_forward_strand,predicted,is_baseline,gene_predicted"])
     
     chromosomeFolders = getChromosomeFolders(saveFilesBasePath)
     for cf in chromosomeFolders:
-        generateStatisticsPerFolder(saveFilesBasePath,cf,regionSize)
-    generateGeneralStatistics(saveFilesBasePath,f"{saveFilesBasePath}chromosomeCSVs/recallStatistics.csv",f"{saveFilesBasePath}finalJsons/recallStatistics.json",regionSize,True)
-    generateGeneralStatistics(saveFilesBasePath,f"{saveFilesBasePath}chromosomeCSVs/precisionStatistics.csv",f"{saveFilesBasePath}finalJsons/precisionStatistics.json",regionSize,False)
+        generateStatisticsPerFolder(saveFilesBasePath,cf)
+    generateMultipleGeneralStatistics(saveFilesBasePath)

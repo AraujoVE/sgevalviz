@@ -3,35 +3,40 @@ import pandas as pd
 from sgevalviz.utils import *
 import numpy as np
 
-#def defineFirstLastExon(df,isFoward):
-#    dfLocal = df.groupby(['gene_id', 'transcript_id'])
-#
-#    exonGroup1 = dfLocal.head(1).index
-#    exonGroup2 = dfLocal.tail(1).index
-#    firstExon = exonGroup1 if isFoward else exonGroup2
-#    lastExon = exonGroup2 if isFoward else exonGroup1
-#    df.loc[firstExon,"is_first_exon"] = True
-#    df.loc[lastExon,"is_last_exon"] = True
-
 def defineFirstLastExon(df):
-    for _, group in df.groupby(['gene_id','transcript_id']):
-        strand_forward = group['is_foward_strand'].iloc[0]
+    isForward = df.iloc[0]["is_forward_strand"]
+    g = df.groupby(["gene_id","transcript_id"])
 
-        if strand_forward:
-            first = group.index[0]
-            last = group.index[-1]
-        else:
-            first = group.index[-1]
-            last = group.index[0]
+    smaller = g.head(1).index
+    bigger = g.tail(1).index
 
-        df.loc[first, 'is_first_exon'] = True
-        df.loc[last, 'is_last_exon'] = True
+    firstExon = smaller if isForward else bigger
+    lastExon = bigger if isForward else smaller
+
+    df.loc[firstExon, "is_first_exon"] = True
+    df.loc[lastExon, "is_last_exon"] = True
+
+    return df
+
+def defineIntronRetentionExon(df):
+    df["exon_start_repeats"] = df.duplicated("region_start", keep=False)
+    df["exon_end_repeats"] = df.duplicated("region_end", keep=False)
+
+    min_end = df.groupby("region_start")["region_end"].transform("min")
+    df["non_smallest_exon_from_same_start_group"] = (df["region_end"] != min_end)
+
+    df["is_intron_retention_exon"] = (df["exon_start_repeats"] & df["exon_end_repeats"] & df["non_smallest_exon_from_same_start_group"])
+    df.drop(columns=["exon_start_repeats", "exon_end_repeats", "non_smallest_exon_from_same_start_group"], inplace=True)
+
+    return df
 
 def dropLastIntron(df):
     dfLocal = df.groupby(['gene_id', 'transcript_id'])
 
     lastIntronId = dfLocal.tail(1).index
     df.drop(lastIntronId, inplace=True)
+
+    return df
 
 def unifiedIntronExonDf(dfExon,dfIntron):
     df = pd.concat([dfExon, dfIntron]).sort_index().reset_index(drop=True)
@@ -58,8 +63,9 @@ def getDfString(df, startCodonDf, stopCodonDf):
 
     dfString = dfString.groupby(['chromosome_identifier','gene_id', 'transcript_id']
     ).agg(
-        gene_string=('gene_string', '/'.join),   # join all gene_string values
-        exon_qtty=('gene_string', 'size')        # count how many were merged
+        gene_string=('gene_string', '/'.join), # join all gene_string values
+        exon_qtty=('gene_string', 'size'), # count how many were merged
+        intron_retention_qtty=('is_intron_retention_exon','sum') #count how many of the exons are intron retention
     ).reset_index()
 
     dfString = pd.merge(dfString,startCodonDf,on=['chromosome_identifier','gene_id', 'transcript_id'],how='left')
@@ -86,16 +92,19 @@ def getSubDfs(df,listOfPairs):
 
     return dfsList
 
-def fillCsv(saveFilesBasePath,csvPath,isBaseline,hasBothFiles):
+def fillCsv(saveFilesBasePath,csvPath,isBaseline,hasBothFiles,isForwardStrand):
     if not os.path.isfile(csvPath):
         return False
 
     df = pd.read_csv(csvPath)
     df = df.sort_values(by=['gene_id', 'transcript_id', 'region_start']).reset_index(drop=True)
+    if isForwardStrand == None:
+        isForwardStrand = df.iloc[0]["is_forward_strand"]
 
     # Initialize columns
     df['is_first_exon'] = False
     df['is_last_exon'] = False
+    df['is_intron_retention_exon'] = False
 
     # Basic Masks
     isIntron, isExon = getMasks(df,["is_intron","is_exon"])
@@ -110,8 +119,9 @@ def fillCsv(saveFilesBasePath,csvPath,isBaseline,hasBothFiles):
         ]
     )
 
-    defineFirstLastExon(dfExon)
-    dropLastIntron(dfIntron)
+    dfExon = defineFirstLastExon(dfExon)
+    dfExon = defineIntronRetentionExon(dfExon)
+    dfIntron = dropLastIntron(dfIntron)
 
     dfExonIntron = unifiedIntronExonDf(dfExon, dfIntron)
 
@@ -133,21 +143,21 @@ def fillCsv(saveFilesBasePath,csvPath,isBaseline,hasBothFiles):
     genePredictFilePath = f"{saveFilesBasePath}chromosomeCSVs/transcriptAndGeneBaselineFile.csv" if isBaseline else f"{saveFilesBasePath}chromosomeCSVs/transcriptAndGeneCandidateFile.csv" 
     genePredictDf = pd.read_csv(genePredictFilePath) 
     dfPredictString = pd.merge(dfString,genePredictDf,on=['chromosome_identifier','gene_id', 'transcript_id'],how='left')
-    dfPredictString = dfPredictString[["chromosome_identifier","gene_id", "transcript_id","start_gene","end_gene","start_transcript","end_transcript","exon_qtty","gene_string","predicted"]]
-
+    dfPredictString = dfPredictString[["chromosome_identifier","gene_id", "transcript_id","start_gene","end_gene","start_transcript","end_transcript","exon_qtty","intron_retention_qtty","gene_string","is_forward_strand","predicted"]]
     dfPredictString.to_csv(csvPath.split('.')[0]+"__gene_string.csv", index=False)
     if not hasBothFiles:
         dfPredictString["is_baseline"] = isBaseline
+        dfPredictString["is_forward_strand"] = isForwardStrand
         dfPredictString["gene_predicted"] = False
         dfPredictString.to_csv(f"{basePath}/gene_transcript_predicted.csv", index=False)
 
-    return df, dfPredictString
+    return df, dfPredictString, isForwardStrand
 
 def fillCsvPredict(genePredictDf, csvDf, csvPath):
     genePredictDf = genePredictDf.drop(columns=['start_gene','end_gene','start_transcript','end_transcript','gene_string'])
     csvDf = csvDf.drop(columns=['predicted','gene_predicted'])
 
-    fullCompariosonDf = pd.merge(csvDf,genePredictDf,on=['chromosome_identifier', 'gene_id', 'transcript_id'], how='left')
+    fullCompariosonDf = pd.merge(csvDf,genePredictDf,on=['chromosome_identifier', 'gene_id', 'transcript_id', 'is_forward_strand'], how='left')
 
     fullCompariosonDf.to_csv(csvPath, index=False)
 
@@ -166,7 +176,7 @@ def predictedOrNotDf(candidateDf,baselineDf,predicted):
 
     return newDf
 
-def compareGenes(sf,baselineDf,candidateDf):
+def compareGenes(sf,baselineDf,candidateDf,isForwardStrand):
 
     # get unique values from both
     candidateGenes = candidateDf['gene_string'].unique()
@@ -197,6 +207,7 @@ def compareGenes(sf,baselineDf,candidateDf):
         .reset_index()              # turn it back into a DataFrame
     )
     fullDf = pd.merge(fullDf,anyTranscriptPredictedDf,on="gene_id", how="left")
+    fullDf["is_forward_strand"] = isForwardStrand
 
     fullDf.to_csv(f"{sf}/gene_transcript_predicted.csv", index=False)
 
@@ -226,17 +237,18 @@ def appendFile(inputFile,outputFile):
 def fillData(saveFilesBasePath,extraArgs):
     chromosomeFolders = getChromosomeFolders(saveFilesBasePath)
     for sf in chromosomeFolders:
+        isForwardStrand = None
         if not (hasBaseline(sf) or hasCandidate(sf)):
             continue
 
         if hasBaseline(sf):
-            baselineDf, baselineGeneStringDf = fillCsv(saveFilesBasePath,f"{sf}/processedBaselineFile.csv",True,hasCandidate(sf))
+            baselineDf, baselineGeneStringDf, isForwardStrand = fillCsv(saveFilesBasePath,f"{sf}/processedBaselineFile.csv",True,hasCandidate(sf),isForwardStrand)
 
         if hasCandidate(sf):
-            candidateDf, candidateGeneStringDf = fillCsv(saveFilesBasePath,f"{sf}/processedCandidateFile.csv",False,hasBaseline(sf))
+            candidateDf, candidateGeneStringDf, isForwardStrand = fillCsv(saveFilesBasePath,f"{sf}/processedCandidateFile.csv",False,hasBaseline(sf),isForwardStrand)
 
         if hasBaseline(sf) and hasCandidate(sf):
-            predictedDf = compareGenes(sf, baselineGeneStringDf, candidateGeneStringDf)
+            predictedDf = compareGenes(sf, baselineGeneStringDf, candidateGeneStringDf, isForwardStrand)
             fillCsvPredict(predictedDf,baselineDf,f"{sf}/processedBaselineFile.csv")
             fillCsvPredict(predictedDf,candidateDf,f"{sf}/processedCandidateFile.csv")
 

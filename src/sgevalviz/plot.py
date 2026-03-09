@@ -5,134 +5,127 @@ import shutil
 
 percentageConfig = [
     [
-        ("nucleotides_predicted_percentage","Nucleotides"),
-        ("genes_predicted_percentage","Genes"),
-        ("start_codons_predicted_percentage","Start Codon"),
-        ("stop_codons_predicted_percentage","Stop Codon"),
-        ("genes_not_ignored_percentage", "Genes Not Ignored")
+        ("nucleotides_predicted_percentage_forward","Forward Strand"),
+        ("nucleotides_predicted_percentage_reverse","Reverse Strand"),
+        ("nucleotides_predicted_percentage","Total")
     ],
     [
-        ("exons_predicted_percentage","General"),
-        ("first_exons_only_predicted_percentage","First"),
-        ("last_exons_only_predicted_percentage","Last"),
-        ("single_exons_predicted_percentage","Single")
+        ("genes_predicted_percentage_forward","Forward Strand"),
+        ("genes_predicted_percentage_reverse","Reverse Strand"),
+        ("genes_predicted_percentage","Total")
     ],
     [
-        ("introns_predicted_percentage","General"),
-        ("donors_predicted_percentage","Donors"),
-        ("acceptors_predicted_percentage","Acceptors")
+        ("start_codons_predicted_percentage_forward","Forward Strand"),
+        ("start_codons_predicted_percentage_reverse","Reverse Strand"),
+        ("start_codons_predicted_percentage","Total")
+    ],
+    [
+        ("stop_codons_predicted_percentage_forward","Forward Strand"),
+        ("stop_codons_predicted_percentage_reverse","Reverse Strand"),
+        ("stop_codons_predicted_percentage","Total")
+    ],
+    [
+        ("genes_not_ignored_percentage_forward", "Forward Strand"),
+        ("genes_not_ignored_percentage_reverse", "Reverse Strand"),
+        ("genes_not_ignored_percentage", "Total")
+    ],
+    [
+        ("exons_predicted_percentage_forward","Forward Strand"),
+        ("exons_predicted_percentage_reverse","Reverse Strand"),
+        ("exons_predicted_percentage","Total")
+    ],
+    [
+        ("first_exons_only_predicted_percentage_forward","Forward Strand"),
+        ("first_exons_only_predicted_percentage_reverse","Reverse Strand"),
+        ("first_exons_only_predicted_percentage","Total")
+    ],
+    [
+        ("last_exons_only_predicted_percentage_forward","Forward Strand"),
+        ("last_exons_only_predicted_percentage_reverse","Reverse Strand"),
+        ("last_exons_only_predicted_percentage","Total")
+    ],
+    [
+        ("single_exons_predicted_percentage_forward","Forward Strand"),
+        ("single_exons_predicted_percentage_reverse","Reverse Strand"),
+        ("single_exons_predicted_percentage","Total"),
+    ],
+    [
+        ("introns_predicted_percentage_forward","Forward Strand"),
+        ("introns_predicted_percentage_reverse","Reverse Strand"),
+        ("introns_predicted_percentage","Total")
+    ],
+    [
+        ("donors_predicted_percentage_forward","Forward Strand"),
+        ("donors_predicted_percentage_reverse","Reverse Strand"),
+        ("donors_predicted_percentage","Total")
+    ],
+    [
+        ("acceptors_predicted_percentage_forward","Forward Strand"),
+        ("acceptors_predicted_percentage_reverse","Reverse Strand"),
+        ("acceptors_predicted_percentage","Total")
     ]
 ]
-percentageTitles = ("General Prediction","Exon Prediction","Intron Prediction")
-
-groupPercentageConfig = [
-    [
-        ("exons_predicted_percentage","Exons"),
-        ("first_exons_only_predicted_percentage","First Exons"),
-        ("last_exons_only_predicted_percentage","Last Exons"),
-        ("single_exons_predicted_percentage","Single Exons"),
-        ("introns_predicted_percentage","Introns")
-    ],
-    [
-        ("exons_by_total_percentage","General"),
-        ("exons_predicted_by_total_percentage","Predicted"),
-        ("exons_unpredicted_by_total_percentage","Unpredicted")
-    ],
-    [
-        ("first_exons_only_by_total_percentage","General"),
-        ("first_exons_only_predicted_by_total_percentage","Predicted"),
-        ("first_exons_only_unpredicted_by_total_percentage","Unpredicted")
-    ],
-    [
-        ("last_exons_only_by_total_percentage","General"),
-        ("last_exons_only_predicted_by_total_percentage","Predicted"),
-        ("last_exons_only_unpredicted_by_total_percentage","Unpredicted")
-    ],
-    [
-        ("single_exons_by_total_percentage","General"),
-        ("single_exons_predicted_by_total_percentage","Predicted"),
-        ("single_exons_unpredicted_by_total_percentage","Unpredicted")
-    ],
-    [
-        ("introns_by_total_percentage","General"),
-        ("introns_predicted_by_total_percentage","Predicted"),
-        ("introns_unpredicted_by_total_percentage","Unpredicted")
-    ]
-]
-
-
-"exons_predicted_by_total_percentage"
-groupPercentageTitles = ("Exon/Intron Prediction - Group","Exon Occurance Percentage","First Exon Occurance Percentage","Last Exon Occurance Percentage","Single Exon Occurance Percentage","Intron Occurance Percentage")
-
+percentageTitles = ("Nucleotides", "Genes", "Start Codon", "Stop Codon", "Genes Not Ignored", "General Exons", "First Exons", "Last Exons", "Single Exons", "Introns", "Donors", "Acceptors")
 
 exonSizeConfig = [
     [
-        ("exons_total_size_avg","All"),
-        ("exons_predicted_size_avg","Predicted"),
-        ("exons_unpredicted_size_avg","Unpredicted")
+        ("exons_total_size_avg_forward","All, Forward Strand"),
+        ("exons_total_size_avg_reverse","All, Reverse Strand"),
+        ("exons_total_size_avg","All, Total"),
+        ("exons_predicted_size_avg_forward","Predicted, Forward Strand"),
+        ("exons_predicted_size_avg_reverse","Predicted, Reverse Strand"),
+        ("exons_predicted_size_avg","Predicted, Total"),
+        ("exons_unpredicted_size_avg_forward","Unpredicted, Forward Strand"),
+        ("exons_unpredicted_size_avg_reverse","Unpredicted, Reverse Strand"),
+        ("exons_unpredicted_size_avg","Unpredicted, Total")
     ],
     [
-        ("first_exons_only_total_size_avg","All"),
-        ("first_exons_only_predicted_size_avg","Predicted"),
-        ("first_exons_only_unpredicted_size_avg","Unpredicted")
+        ("first_exons_only_total_size_avg_forward","All, Forward Strand"),
+        ("first_exons_only_total_size_avg_reverse","All, Reverse Strand"),
+        ("first_exons_only_total_size_avg","All, Total"),
+        ("first_exons_only_predicted_size_avg_forward","Predicted, Forward Strand"),
+        ("first_exons_only_predicted_size_avg_reverse","Predicted, Reverse Strand"),
+        ("first_exons_only_predicted_size_avg","Predicted, Total"),
+        ("first_exons_only_unpredicted_size_avg_forward","Unpredicted, Forward Strand"),
+        ("first_exons_only_unpredicted_size_avg_reverse","Unpredicted, Reverse Strand"),
+        ("first_exons_only_unpredicted_size_avg","Unpredicted, Total")
     ],
     [
-        ("last_exons_only_total_size_avg","All"),
-        ("last_exons_only_predicted_size_avg","Predicted"),
-        ("last_exons_only_unpredicted_size_avg","Unpredicted")
+        ("last_exons_only_total_size_avg_forward","All, Forward Strand"),
+        ("last_exons_only_total_size_avg_reverse","All, Reverse Strand"),
+        ("last_exons_only_total_size_avg","All, Total"),
+        ("last_exons_only_predicted_size_avg_forward","Predicted, Forward Strand"),
+        ("last_exons_only_predicted_size_avg_reverse","Predicted, Reverse Strand"),
+        ("last_exons_only_predicted_size_avg","Predicted, Total"),
+        ("last_exons_only_unpredicted_size_avg_forward","Unpredicted, Forward Strand"),
+        ("last_exons_only_unpredicted_size_avg_reverse","Unpredicted, Reverse Strand"),
+        ("last_exons_only_unpredicted_size_avg","Unpredicted, Total")
     ],
     [
-        ("single_exons_total_size_avg","All"),
-        ("single_exons_predicted_size_avg","Predicted"),
-        ("single_exons_unpredicted_size_avg","Unpredicted")
+        ("single_exons_total_size_avg_forward","All, Forward Strand"),
+        ("single_exons_total_size_avg_reverse","All, Reverse Strand"),
+        ("single_exons_total_size_avg","All, Total"),
+        ("single_exons_predicted_size_avg_forward","Predicted, Forward Strand"),
+        ("single_exons_predicted_size_avg_reverse","Predicted, Reverse Strand"),
+        ("single_exons_predicted_size_avg","Predicted, Total"),
+        ("single_exons_unpredicted_size_avg_forward","Unpredicted, Forward Strand"),
+        ("single_exons_unpredicted_size_avg_reverse","Unpredicted, Reverse Strand"),
+        ("single_exons_unpredicted_size_avg","Unpredicted, Total")
     ]
 ]
 exonSizeTitles = ["General Exon Size","General First Exon Size","General Last Exon Size","General Single Exon Size"]
 
-groupSizeConfig = [
-    [
-        ("exons_total_size_avg","All"),
-        ("exons_predicted_size_avg","Predicted"),
-        ("exons_unpredicted_size_avg","Unpredicted")
-    ],
-    [
-        ("first_exons_only_total_size_avg","All"),
-        ("first_exons_only_predicted_size_avg","Predicted"),
-        ("first_exons_only_unpredicted_size_avg","Unpredicted")
-    ],
-    [
-        ("last_exons_only_total_size_avg","All"),
-        ("last_exons_only_predicted_size_avg","Predicted"),
-        ("last_exons_only_unpredicted_size_avg","Unpredicted")
-    ],
-    [
-        ("single_exons_total_size_avg","All"),
-        ("single_exons_predicted_size_avg","Predicted"),
-        ("single_exons_unpredicted_size_avg","Unpredicted")
-    ],
-    [
-        ("introns_total_size_avg","All"),
-        ("introns_predicted_size_avg","Predicted"),
-        ("introns_unpredicted_size_avg","Unpredicted")
-    ]
-]
-groupSizeTitles = ["General Exon Size - Group","General First Exon Size - Group","General Last Exon Size - Group","General Single Exon Size - Group","General Intron Size - Group"]
-
-groupIntronSizeConfig = [
-    [
-        ("introns_total_size_avg","All"),
-        ("introns_predicted_size_avg","Predicted"),
-        ("introns_unpredicted_size_avg","Unpredicted")
-    ]
-]
-groupIntronSizeTitles = ["General Intron - Group"]
-
-
 intronSizeConfig = [
     [
-        ("introns_total_size_avg","All"),
-        ("introns_predicted_size_avg","Predicted"),
-        ("introns_unpredicted_size_avg","Unpredicted")
+        ("introns_total_size_avg_forward","All, Forward Strand"),
+        ("introns_total_size_avg_reverse","All, Reverse Strand"),
+        ("introns_total_size_avg","All, Total"),
+        ("introns_predicted_size_avg_forward","Predicted, Forward Strand"),
+        ("introns_predicted_size_avg_reverse","Predicted, Reverse Strand"),
+        ("introns_predicted_size_avg","Predicted, Total"),
+        ("introns_unpredicted_size_avg_forward","Unpredicted, Forward Strand"),
+        ("introns_unpredicted_size_avg_reverse","Unpredicted, Reverse Strand"),
+        ("introns_unpredicted_size_avg","Unpredicted, Total")
     ]
 ]
 intronSizeTitles = ["General Intron"]
@@ -140,12 +133,22 @@ intronSizeTitles = ["General Intron"]
 
 avgExonsInGenesConfig = [
     [
-        ("exons_in_predicted_genes_predicted_transcripts","Predicted Genes, Predicted Transcripts"),
-        ("exons_in_predicted_genes_unpredicted_transcripts","predicted Genes, Unpredicted Transcripts"),
-        ("exons_in_unpredicted_genes","Unpredicted Genes")
+        ("exons_in_predicted_genes_predicted_transcripts_forward","Forward Strand"),
+        ("exons_in_predicted_genes_predicted_transcripts_reverse","Reverse Strand"),
+        ("exons_in_predicted_genes_predicted_transcripts","Total")
+    ],
+    [
+        ("exons_in_predicted_genes_unpredicted_transcripts_forward","Forward Strand"),
+        ("exons_in_predicted_genes_unpredicted_transcripts_reverse","Reverse Strand"),
+        ("exons_in_predicted_genes_unpredicted_transcripts","Total")
+    ],
+    [
+        ("exons_in_unpredicted_genes_unpredicted_transcripts_forward","Forward Strand"),
+        ("exons_in_unpredicted_genes_unpredicted_transcripts_reverse","Reverse Strand"),
+        ("exons_in_unpredicted_genes_unpredicted_transcripts","Total")
     ]
 ]
-avgExonsInGenesTitle = ["Average Number of Exons in Genes"]
+avgExonsInGenesTitle = ["Average Number of Exons in Predicted Genes, Predicted Transcripts","Average Number of Exons in Predicted Genes, Unpredicted Transcripts","Average Number of Exons in Unredicted Genes"]
 
 def baseDicts(qtty,keys):
     data = []
@@ -166,27 +169,6 @@ def addBar(fullDict,dictKey,category,data,pos):
     dictValue = -1 if dictValue == None else dictValue
     data[pos]["values"].append(dictValue)
     data[pos]["categories"].append(category)
-
-
-#def addLine(fullDict,dictKey,category,data,pos):
-#    divideByGroup = ("size_avg" in dictKey)
-#    groupSize = fullDict["groups"]["group_size"]
-#    minGroup = fullDict["groups"]["min_group"]
-#    maxGroup = fullDict["groups"]["max_group"]
-#
-#    xValues = [i*groupSize for i in range(minGroup,maxGroup+1)]
-#    yValues = []
-#
-#    for i in range(minGroup,maxGroup+1):
-#        dictValue = fullDict["groups"][str(i)]["data"][dictKey]
-#        if divideByGroup and (dictValue is not None):
-#            minValue = groupSize*(minGroup+i)
-#            dictValue = (dictValue - minValue)/groupSize
-#        yValues.append(dictValue)
-#
-#    data[pos]["valuesX"].append(xValues)
-#    data[pos]["valuesY"].append(yValues)
-#    data[pos]["categories"].append(category)
 
 def addColors(data,keyName):
     colors = [
@@ -246,26 +228,6 @@ def plotBarData(data, axs, yLable):
         axs[i].set_ylabel(yLable)
         axs[i].grid(axis='y', linestyle='--', alpha=0.5)
 
-#def plotLineData(data, axs, yLable):
-#    for i, d in enumerate(data):
-#        x = d["valuesX"][0]
-#        for j in range(len(d["categories"])):
-#            axs[i].plot(
-#                x,
-#                d["valuesY"][j],
-#                label=d["categories"][j],
-#                color=d["colors"][j],
-#                marker='o',        # shape: 'o', 's', '^', 'D', etc.
-#                markersize=5,      # size of the markers
-#                markeredgecolor='black',  # outline (optional)
-#                linewidth=1.5      # thickness of the connecting line
-#            )
-#
-#        axs[i].set_title(d["title"], fontsize=12, fontweight='bold')
-#        axs[i].set_ylabel(yLable)
-#        axs[i].grid(axis='y', linestyle='--', alpha=0.5)
-#        axs[i].legend()
-
 def barGraphs(fullDict,baseDir,imgTitle,yLable,config,titles):
     graphsNo = len(config)
     data = baseDicts(graphsNo,["categories","values","title","colors"])
@@ -287,28 +249,6 @@ def barGraphs(fullDict,baseDir,imgTitle,yLable,config,titles):
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     plt.savefig(f"{baseDir}/{imgTitle}.png", dpi=300, bbox_inches="tight")
 
-#def lineGraphs(fullDict,baseDir,imgTitle,yLable,config,titles):
-#    graphsNo = len(config)
-#    data = baseDicts(graphsNo,["categories","valuesX","valuesY","title","colors"])
-#    addTitles(data,titles)
-#
-#    for i in range(len(config)):
-#        for line in config[i]:
-#            addLine(fullDict,line[0],line[1],data,i)
-#    
-#    addColors(data,"valuesY")
-#
-#    fig, axs = plt.subplots(graphsNo, 1, figsize=(10, 5*graphsNo))
-#
-#    axs = [axs] if graphsNo == 1 else axs.flatten()
-#
-#    plotLineData(data,axs,yLable)
-#
-#    fig.suptitle(imgTitle, fontsize=16, fontweight='bold')
-#    plt.tight_layout(rect=[0, 0, 1, 0.96])
-#    plt.savefig(f"{baseDir}/{imgTitle}.png", dpi=300, bbox_inches="tight")
-
-
 def getDict(filePath):
     with open(filePath) as json_file:
         data = json.load(json_file)
@@ -325,11 +265,9 @@ def plotGroup(saveFilesBasePath,groupName,groupPath):
     os.makedirs(dirPath,exist_ok=True)
 
     barGraphs(fullDict,dirPath,f"{groupName} Percentage Statistics","Percentage",percentageConfig,percentageTitles)
-    barGraphs(fullDict,dirPath,f"{groupName} Exon Size Statistics","Nucleotide Bases",exonSizeConfig,exonSizeTitles)
-    barGraphs(fullDict,dirPath,f"{groupName} Intron Size Statistics","Nucleotide Bases",intronSizeConfig,intronSizeTitles)
+    #barGraphs(fullDict,dirPath,f"{groupName} Exon Size Statistics","Nucleotide Bases",exonSizeConfig,exonSizeTitles)
+    #barGraphs(fullDict,dirPath,f"{groupName} Intron Size Statistics","Nucleotide Bases",intronSizeConfig,intronSizeTitles)
     barGraphs(fullDict,dirPath,f"{groupName} Exon Quantity Statistics","Number of Exons",avgExonsInGenesConfig,avgExonsInGenesTitle)
-    #lineGraphs(fullDict,dirPath,f"{groupName} Group Percentage Statistics","Percentage",groupPercentageConfig,groupPercentageTitles)
-    #lineGraphs(fullDict,dirPath,f"{groupName} Group Size Statistics","Average Size Percentil",groupSizeConfig,groupSizeTitles)
 
 
 def plot(saveFilesBasePath):
