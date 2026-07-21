@@ -176,6 +176,45 @@ def predictedOrNotDf(candidateDf,baselineDf,predicted):
 
     return newDf
 
+def checkIfValuesCross(a_start, a_end, b_start, b_end):
+    return not (a_end < b_start or b_end < a_start)
+
+def getSameStrandDf(baselineDf, candidateDf):
+
+    candidateDf["read"] = candidateDf.apply(
+        lambda row: [
+            row["start_transcript"] % 3,
+            row["start_transcript"],
+            row["end_transcript"],
+        ],
+        axis=1,
+    )
+
+    baselineDf["read_list"] = baselineDf.apply(
+        lambda row: [
+            row["start_transcript"] % 3,
+            row["start_transcript"],
+            row["end_transcript"],
+        ],
+        axis=1,
+    )
+
+    readCandidate = candidateDf[['gene_id', 'read']]
+    readListBaseline = (
+        baselineDf.groupby('gene_id')['read_list']
+        .apply(list)
+    )
+    joinedBaseline = pd.merge(readListBaseline, readCandidate, on='gene_id', how='left')
+    
+    joinedBaseline["same_strand"] = joinedBaseline.apply(
+        lambda row: any(row['read'][0] == line[0] and checkIfValuesCross(row['read'][1], row['read'][2], line[1], line[2]) for line in row['read_list']),
+        axis=1
+    )
+
+    joinedBaseline = joinedBaseline[['gene_id', 'same_strand']]
+
+    return joinedBaseline
+
 def compareGenes(sf,baselineDf,candidateDf,isForwardStrand):
 
     # get unique values from both
@@ -208,6 +247,12 @@ def compareGenes(sf,baselineDf,candidateDf,isForwardStrand):
     )
     fullDf = pd.merge(fullDf,anyTranscriptPredictedDf,on="gene_id", how="left")
     fullDf["is_forward_strand"] = isForwardStrand
+
+    joinedBaseline = getSameStrandDf(baselineDf, candidateDf)
+
+    fullDf = pd.merge(fullDf, joinedBaseline, on='gene_id', how='left')
+    fullDf[fullDf['gene_predicted'], 'same_strand'] = True
+
 
     fullDf.to_csv(f"{sf}/gene_transcript_predicted.csv", index=False)
 
