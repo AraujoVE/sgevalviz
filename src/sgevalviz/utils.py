@@ -100,35 +100,12 @@ def updatedParam(paramVar, paramName, jsonData):
         if not validated:
             return False, "Invalid param"
 
-    return True, returnVar            
+    return True, returnVar
 
+def updateLineParamsToConfig(groupType, reader, seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId):
+    jsonData = loadConfig(groupType, reader)
 
-from importlib import resources
-import json
-
-def loadConfig(config, isStandardConfig):
-    try:
-        if isStandardConfig:
-            json_str = resources.read_text("sgevalviz.configs", f"{config}.json", encoding="utf-8")
-        else:
-            if not os.path.isabs(config):
-                raise ValueError(f"Expected an absolute path for config, got: {config}")
-            if not os.path.isfile(config):
-                raise FileNotFoundError(f"Config file not found: {config}")
-            with open(config, "r", encoding="utf-8") as f:
-                json_str = f.read()
-        return json.loads(json_str)
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Config file '{config}.json' not found in sgevalviz/configs/")
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON in config file '{config}.json': {e}")
-
-
-
-def updateLineParamsToConfig(config, isStandardConfig, seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId):
-    jsonData = loadConfig(config, isStandardConfig)
-
-    falseReturn = [False for i in range(11)]
+    falseReturn = 11*[False]
     
     continueCheck, seqname = updatedParam(seqname,"seqname", jsonData)
     if not continueCheck:
@@ -173,10 +150,25 @@ def updateLineParamsToConfig(config, isStandardConfig, seqname, source, featureT
     return True, seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId
     
 def getConfigType(standardConfig, customConfig):
-    config = standardConfig if customConfig == "" else customConfig
-    isStandardConfig = True if (standardConfig != "" and customConfig == "") else False
+    if standardConfig == "" and customConfig == "":
+        configName = ""
+        configType = ""
+    elif customConfig == "":
+        configName = standardConfig
+        configType = "standard"
+    elif standardConfig == "":
+        configName = customConfig
+        configType = "custom"
+    else:
+        configName = customConfig
+        configType = "custom"
 
-    return config, isStandardConfig
+    config = {
+        "name": standardConfig or customConfig,
+        "type": "custom" if customConfig else "standard"
+    }
+
+    return config
 
 def validateInputs(argv):    
     validStatus = False
@@ -200,7 +192,7 @@ def validateInputs(argv):
 
     baselinePath = argv[3]
     if not os.path.isfile(baselinePath):
-        resultMsg = "Invalid argument: the second argument must be a file"
+        resultMsg = "Invalid argument: the third argument must be a file"
         return validStatus, resultMsg, None, None, None
 
     validStatus = True

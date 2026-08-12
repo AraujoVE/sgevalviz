@@ -1,176 +1,116 @@
-import os
-from sgevalviz.utils import *
 import pandas as pd
-import shutil
+from sgevalviz.reader import Reader
+from sgevalviz.gtf_processor import GtfProcessor
 
-def trimAttribute(attributeVal):
-    return attributeVal.strip("\n").strip(";").strip('"')
+def writeProcessedLine(file, chromosomeId, gtfParams, lineType, startPos, endPos, header):
+    geneId = gtfParams["gene_id"]
+    transcriptId = gtfParams["transcript_id"]
 
-def getGtfExtraAttributes(extraAttributes, attributesName):
-    extraAttributesList = extraAttributes.strip().split(" ")
+    isExon = str(lineType == "exon")
+    isIntron = str(lineType == "intron")
+    isStartCodon = str(lineType == "start_codon")
+    isStopCodon = str(lineType == "stop_codon")
 
-    if len(extraAttributesList) == 1:
-        return False, extraAttributesList[0]
-    extraAttributesDict = {extraAttributesList[i]: trimAttribute(extraAttributesList[i+1]) for i in range(0,len(extraAttributesList),2) if extraAttributesList[i] in attributesName}
-    return True, extraAttributesDict
+    isFirstExon = "False"
+    isLastExon = "False"
+    isIntronRetentionExon = "False"
 
-def getLineParams(line,config,isStandardConfig):
-    falseResult = [False for i in range(10)]
+    isForwardStrand = str(gtfParams["strand"] == "+")
 
-    if line.count("\t") != 8:
-        return falseResult
+    regionStart = startPos
+    regionEnd = endPos
 
-    seqname, source, featureType, startPos, endPos, score, strand, frame, extraAttributes = line.split('\t')
+    predicted = "False"
+    genePredicted = "False"
 
-    if featureType not in ["CDS","start_codon","stop_codon","gene","transcript"]:
-        return falseResult
-    
-    if featureType == "gene":
-        isDict , geneValue = getGtfExtraAttributes(extraAttributes, ["gene_id"])
-        if isDict:
-            extraAttributesDict = {"gene_id": geneValue["gene_id"], "transcript_id": None}
-        else:
-            extraAttributesDict = {"gene_id": geneValue, "transcript_id": None}
-    elif featureType == "transcript":
-        isDict , transcriptValue = getGtfExtraAttributes(extraAttributes, ["gene_id", "transcript_id"])
-        if isDict:
-            extraAttributesDict = {"gene_id": transcriptValue["gene_id"], "transcript_id": transcriptValue["transcript_id"]}
-        else:
-            extraAttributesDict = {"gene_id": transcriptValue.split(".")[0], "transcript_id": transcriptValue}
+    newList = [
+        chromosomeId,
+        geneId,
+        transcriptId,
+        isExon,
+        isIntron,
+        isStartCodon,
+        isStopCodon,
+        isFirstExon,
+        isLastExon,
+        isIntronRetentionExon,
+        isForwardStrand,
+        regionStart,
+        regionEnd,
+        predicted,
+        genePredicted
+    ]
+
+    newLine = header + ",".join(newList) + "\n"
+
+    file.write(newLine)
+
+def updateGeneOrTranscriptDf(df, chromosomeId, gtfParams, isGene):
+    if isGene:
+        newRow = {
+            "chromosome_identifier": chromosomeId,
+            "is_forward_strand": gtfParams['strand'] == '+',
+            "gene_id": gtfParams['gene_id'],
+            "start_gene": gtfParams['startPos'],
+            "end_gene": gtfParams['endPos']
+        }
     else:
-        _ , extraAttributesDict = getGtfExtraAttributes(extraAttributes, ["gene_id", "transcript_id"])
+        newRow = {
+            "chromosome_identifier": chromosomeId,
+            "is_forward_strand": gtfParams['strand'] == '+',
+            "gene_id": gtfParams['gene_id'],
+            "transcript_id": gtfParams['transcript_id'],
+            "start_transcript": gtfParams['startPos'],
+            "end_transcript": gtfParams['endPos']
+        }
 
-    geneId = extraAttributesDict["gene_id"]
-    transcriptId = extraAttributesDict["transcript_id"]
-    if config != "":
-        validLine, seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId = updateLineParamsToConfig(config,isStandardConfig, seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId)
+    newDf = pd.concat([df, pd.DataFrame([newRow])], ignore_index=True)
 
-        if not validLine:
-            return falseResult
+    return newDf
 
-    return seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId
-
-
-def createRegionLine(chromosome_identifier, gene_id, transcript_id, is_exon , is_intron , is_start_codon, is_stop_codon, strand, region_start, region_end):
-    is_forward_strand = ("True" if strand == "+" else "False")
-    newLine = f"{chromosome_identifier},{gene_id},{transcript_id},{is_exon},{is_intron},{is_start_codon},{is_stop_codon},nan,nan,nan,{is_forward_strand},{region_start},{region_end},nan\n"
-    return newLine
-
-def getChromosomeIdentifier(seqname,strand,splitByChromosome):
-    strandName = f"{'forward' if strand == '+' else 'reverse'}_strand"
-    chromosomeName = f"{seqname}__{strandName}"
-    chromosomeIdentifier = (chromosomeName if splitByChromosome else strandName)
-
-    return chromosomeIdentifier
-
-def writeOnChromosomeFolder(input,output,chromosomeIdentifier,header):
-    with open(input, 'r') as f_in, open(output, 'w') as f_out:
-        f_out.write(f"{header}\n")
-        for line in f_in:
-            lineIdentifier, _ = line.split(",", 1)
-            if lineIdentifier == chromosomeIdentifier:
-                f_out.write(line)
-
-
-def writeChromosomeFile(chromosomeIdentifier,baseDir,inputPath,inputPathTranscript,outputPath,transcriptGenePath):
-    chromosomeNewDir = f"{baseDir}{chromosomeIdentifier}/"
-    fullOutputPath = f"{chromosomeNewDir}{outputPath}"
-    fullTranscriptPath = f"{chromosomeNewDir}{transcriptGenePath}" 
-    os.makedirs(chromosomeNewDir,exist_ok=True)
-
-    writeOnChromosomeFolder(inputPath,fullOutputPath,chromosomeIdentifier,"chromosome_identifier,gene_id,transcript_id,is_exon,is_intron,is_start_codon,is_stop_codon,is_first_exon,is_last_exon,is_intron_retention_exon,is_forward_strand,region_start,region_end,predicted")
-    writeOnChromosomeFolder(inputPathTranscript,fullTranscriptPath,chromosomeIdentifier,"chromosome_identifier,gene_id,transcript_id,start_gene,end_gene,start_transcript,end_transcript,is_forward_strand")
-
-    return
-
-def isInvalidLine(line):
-    strippedLine = line.strip()
-    return strippedLine == "" or strippedLine.startswith("#")
-
-def writeSinglePreProcess(inputPath,outputPath,transcriptGenePath,splitByChromosome,extraArgs,config,isStandardConfig):
+def writeSinglePreProcess(groupType: str, reader: Reader, processor: GtfProcessor):
     chromosomes = set()
-    geneDf = pd.DataFrame(columns=['chromosome_identifier','is_forward_strand','gene_id','start_gene','end_gene'])
-    transcriptDf = pd.DataFrame(columns=['chromosome_identifier','is_forward_strand','gene_id','transcript_id','start_transcript','end_transcript'])
-    with open(inputPath, 'r') as f_in, open(outputPath, 'w') as f_out:
+    geneDf = pd.DataFrame(columns=reader.getGeneDfCols())
+    transcriptDf = pd.DataFrame(columns=reader.getTranscriptDfCols())
+    header = ','.join(reader.getProcessedDfCols()) + '\n'
+    with open(reader.getInputPath(groupType), 'r') as f_in, open(reader.getSingleFilePath(groupType, True), 'w') as f_out:
         for line in f_in:
-            if isInvalidLine(line):
+            if processor.isInvalidLine(line):
                 continue
 
-            seqname, source, featureType, startPos, endPos, score, strand, frame, geneId, transcriptId = getLineParams(line,config,isStandardConfig)         
-            isForwardStrand = True if strand == "+" else False
-            if featureType == False:
-                continue
-            chromosomeIdentifier = getChromosomeIdentifier(seqname,strand,splitByChromosome)
-            chromosomes.add(chromosomeIdentifier)
+            gtfParams = processor.getGtfLineParams(line)
 
-            if featureType == "CDS":
-                exonLine = createRegionLine(chromosomeIdentifier,geneId,transcriptId,"True","False","False","False",strand,startPos,endPos)
-                intronLine = createRegionLine(chromosomeIdentifier,geneId,transcriptId,"False","True","False","False",strand,str(int(endPos)+ 1),"nan")
-                f_out.write(exonLine)
-                f_out.write(intronLine)
-            elif featureType in ['start_codon','stop_codon']:
-                isStartCodon = ("True" if featureType == "start_codon" else "False")
-                isStopCodon = ("True" if featureType == "stop_codon" else "False")
-                startStopCodonLine = createRegionLine(chromosomeIdentifier,geneId,transcriptId,"False","False",isStartCodon,isStopCodon,strand,startPos,endPos)
-                f_out.write(startStopCodonLine)
-            elif featureType == "gene":
-                newRow = {'chromosome_identifier':chromosomeIdentifier,'is_forward_strand': isForwardStrand,'gene_id':geneId,'start_gene':startPos,'end_gene':endPos}
-                geneDf = pd.concat([geneDf, pd.DataFrame([newRow])], ignore_index=True)
-            elif featureType == "transcript":
-                newRow = {'chromosome_identifier':chromosomeIdentifier,'is_forward_strand': isForwardStrand,'gene_id':geneId,'transcript_id':transcriptId,'start_transcript':startPos,'end_transcript':endPos}
-                transcriptDf = pd.concat([transcriptDf, pd.DataFrame([newRow])], ignore_index=True)
+            if gtfParams is None:
+                continue
+
+            chromosomeId =  f"{gtfParams['seqname']}__{'forward' if gtfParams['strand'] == '+' else 'reverse'}_strand"
+            chromosomes.add(chromosomeId)
+
+            if gtfParams['featureType'] == "CDS":
+                writeProcessedLine(f_out, chromosomeId, gtfParams, 'exon', gtfParams['startPos'], gtfParams['endPos'], header)
+                header = ''
+                writeProcessedLine(f_out, chromosomeId, gtfParams, 'intron', str(int(gtfParams['endPos']) + 1), 'nan', header)
+            elif gtfParams['featureType'] in ['start_codon','stop_codon']:
+                writeProcessedLine(f_out, chromosomeId, gtfParams, gtfParams['featureType'], gtfParams['startPos'], gtfParams['endPos'], header)
+                header = ''
+            elif gtfParams['featureType'] == "gene":
+                geneDf = updateGeneOrTranscriptDf(geneDf, chromosomeId, gtfParams, True)
+            elif gtfParams['featureType'] == "transcript":
+                transcriptDf = updateGeneOrTranscriptDf(transcriptDf, chromosomeId, gtfParams, False)
 
     geneTranscriptDf = pd.merge(transcriptDf,geneDf,on=['chromosome_identifier','gene_id','is_forward_strand'],how='left')
-    geneTranscriptDf = geneTranscriptDf[["chromosome_identifier","gene_id","transcript_id","start_gene","end_gene","start_transcript","end_transcript","is_forward_strand"]]
-    geneTranscriptDf.to_csv(transcriptGenePath, encoding='utf-8', index=False)
+    geneTranscriptDf.to_csv(reader.getSingleFilePath(groupType, False), encoding='utf-8', index=False)
     return chromosomes
 
-def preProcessFile(baseDir, inputPath,outputPath, transcriptGenePath, splitByChromosome,extraArgs,config,isStandardConfig):
-    singleFileOutput = f"{baseDir}{outputPath}"
-    transcriptGeneFileOutput = f"{baseDir}{transcriptGenePath}"
-    chromosomeIdentifiers = writeSinglePreProcess(inputPath,singleFileOutput,transcriptGeneFileOutput,splitByChromosome,extraArgs,config,isStandardConfig)
+def preProcessFile(groupType, reader):
+    processor = GtfProcessor(reader, groupType)
+    chromosomeIdentifiers = writeSinglePreProcess(groupType, reader, processor)
 
-    for chromosome in chromosomeIdentifiers:
-        writeChromosomeFile(chromosome,baseDir,singleFileOutput,transcriptGeneFileOutput,outputPath,transcriptGenePath)
+    for chromosomeId in chromosomeIdentifiers:
+        reader.initializeChromosomeFolder(chromosomeId)
+        reader.moveFromSingleToChromosome(groupType, chromosomeId, True)
+        reader.moveFromSingleToChromosome(groupType, chromosomeId, False)
 
-# Revised
-def fileDefinition(saveFilesBasePath):
-    basePath = f"{saveFilesBasePath}chromosomeCSVs/"
-
-    if os.path.exists(basePath):
-        shutil.rmtree(basePath)
-
-    os.makedirs(basePath,exist_ok=True)
-
-    finalPath = f"{saveFilesBasePath}finalJsons/"
-
-    if os.path.exists(finalPath):
-        shutil.rmtree(finalPath)
-
-    os.makedirs(finalPath,exist_ok=True)
-
-    processedCandidateFile = "processedCandidateFile.csv"
-    processedBaselineFile = "processedBaselineFile.csv"
-
-    transcriptAndGeneCandidateFile = "transcriptAndGeneCandidateFile.csv"
-    transcriptAndGeneBaselineFile = "transcriptAndGeneBaselineFile.csv"
-
-
-    return basePath, processedCandidateFile, processedBaselineFile, transcriptAndGeneCandidateFile, transcriptAndGeneBaselineFile
-
-
-def preProcess(saveFilesBasePath,candidateFilePath, baselineFilePath, extraArgs):
-    splitByChromosome = not checkParam(extraArgs,"--no-split")[0]
-    
-    standardCandidateConfig =  checkParam(extraArgs,"--candidate-config")[1] if checkParam(extraArgs,"--candidate-config")[0] else ""
-    customCandidateConfig =  checkParam(extraArgs,"--custom-candidate-config")[1] if checkParam(extraArgs,"--custom-candidate-config")[0] else ""
-    candidateConfig, isStandardCandidateConfig = getConfigType(standardCandidateConfig, customCandidateConfig)
-    
-    standardBaselineConfig =  checkParam(extraArgs,"--baseline-config")[1] if checkParam(extraArgs,"--baseline-config")[0] else ""
-    customBaselineConfig =  checkParam(extraArgs,"--custom-baseline-config")[1] if checkParam(extraArgs,"--custom-baseline-config")[0] else ""
-    baselineConfig, isStandardBaselineConfig = getConfigType(standardBaselineConfig, customBaselineConfig)
-
-    basePath, processedCandidateFile, processedBaselineFile, transcriptAndGeneCandidateFile, transcriptAndGeneBaselineFile = fileDefinition(saveFilesBasePath)
-
-    preProcessFile(basePath, candidateFilePath, processedCandidateFile, transcriptAndGeneCandidateFile, splitByChromosome,extraArgs,candidateConfig,isStandardCandidateConfig)
-    preProcessFile(basePath, baselineFilePath, processedBaselineFile, transcriptAndGeneBaselineFile, splitByChromosome,extraArgs,baselineConfig,isStandardBaselineConfig)
+def preProcess(reader: Reader):
+    preProcessFile("candidate", reader)
+    preProcessFile("baseline", reader)

@@ -4,6 +4,7 @@ from sgevalviz.fill_data import fillData
 from sgevalviz.statistical_analysis import statisticalAnalysis
 from sgevalviz.utils import validateParams, validateInputs, checkParam
 from sgevalviz.plot import plot
+from sgevalviz.reader import Reader
 
 
 def run(argv=None):
@@ -25,12 +26,15 @@ def run(argv=None):
         print(errorMessage)
         sys.exit(1)
 
-    if not checkParam(extraArgs,"--no-pre-process")[0]:
-        preProcess(saveFilesBasePath,candidatePath, baselinePath, extraArgs)
-        fillData(saveFilesBasePath,extraArgs)
-        statisticalAnalysis(saveFilesBasePath,extraArgs)
-    if not checkParam(extraArgs, "--no-plot")[0]:
-        plot(saveFilesBasePath)
+    reader = Reader(saveFilesBasePath, candidatePath, baselinePath, extraArgs)
+
+    if not reader.hasParam("no-pre-process"):
+        preProcess(reader)
+        fillData(reader)
+        statisticalAnalysis(reader)
+    if not reader.hasParam("no-plot"):
+        return
+        #plot(saveFilesBasePath)
 
 
 def main():

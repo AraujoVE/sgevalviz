@@ -1,299 +1,137 @@
-import os
 import pandas as pd
-from sgevalviz.utils import *
-import numpy as np
+from sgevalviz.reader import Reader
+from sgevalviz.fill_data_helper import FillDataHelper
 
-def defineFirstLastExon(df):
-    isForward = df.iloc[0]["is_forward_strand"]
-    g = df.groupby(["gene_id","transcript_id"])
+def fillCsv(reader: Reader, chromosomePath, groupType, hasBothFiles):
 
-    smaller = g.head(1).index
-    bigger = g.tail(1).index
+    dfHelper = FillDataHelper(chromosomePath, groupType, reader)
 
-    firstExon = smaller if isForward else bigger
-    lastExon = bigger if isForward else smaller
+    dfHelper.enrinchDf()
+    dfHelper.writeDf()
 
-    df.loc[firstExon, "is_first_exon"] = True
-    df.loc[lastExon, "is_last_exon"] = True
+    dfHelper.generateGeneStringDf()
+    dfHelper.writeGeneStringDf()
 
-    return df
-
-def defineIntronRetentionExon(df):
-    df["exon_start_repeats"] = df.duplicated("region_start", keep=False)
-    df["exon_end_repeats"] = df.duplicated("region_end", keep=False)
-
-    min_end = df.groupby("region_start")["region_end"].transform("min")
-    df["non_smallest_exon_from_same_start_group"] = (df["region_end"] != min_end)
-
-    df["is_intron_retention_exon"] = (df["exon_start_repeats"] & df["exon_end_repeats"] & df["non_smallest_exon_from_same_start_group"])
-    df.drop(columns=["exon_start_repeats", "exon_end_repeats", "non_smallest_exon_from_same_start_group"], inplace=True)
-
-    return df
-
-def dropLastIntron(df):
-    dfLocal = df.groupby(['gene_id', 'transcript_id'])
-
-    lastIntronId = dfLocal.tail(1).index
-    df.drop(lastIntronId, inplace=True)
-
-    return df
-
-def unifiedIntronExonDf(dfExon,dfIntron):
-    df = pd.concat([dfExon, dfIntron]).sort_index().reset_index(drop=True)
-    df = df.sort_values(by=['gene_id', 'transcript_id', 'region_start']).reset_index(drop=True)
-
-    df['next_exon_start'] = np.where(df['is_exon'], df['region_start'], np.nan)
-    df['next_exon_start'] = df['next_exon_start'].bfill()
-    df.loc[df['is_intron'], 'region_end'] = df.loc[df['is_intron'], 'next_exon_start'] - 1
-    df.drop(columns='next_exon_start', inplace=True)
-
-    return df
-
-def getCodonDf(df,maskCol,regionStartValue):
-    codonDf = df.loc[df[maskCol]]
-    codonDf = codonDf[['chromosome_identifier','gene_id','transcript_id','region_start']]
-    codonDf.rename(columns={'region_start':regionStartValue},inplace=True)
-
-    return codonDf
-
-def getDfString(df, startCodonDf, stopCodonDf):
-
-    dfString = df.loc[df['is_exon']].copy()
-    dfString['gene_string'] = dfString['region_start'].astype(str) + ';' + dfString['region_end'].astype(str)
-
-    dfString = dfString.groupby(['chromosome_identifier','gene_id', 'transcript_id']
-    ).agg(
-        gene_string=('gene_string', '/'.join), # join all gene_string values
-        exon_qtty=('gene_string', 'size'), # count how many were merged
-        intron_retention_qtty=('is_intron_retention_exon','sum') #count how many of the exons are intron retention
-    ).reset_index()
-
-    dfString = pd.merge(dfString,startCodonDf,on=['chromosome_identifier','gene_id', 'transcript_id'],how='left')
-    dfString = pd.merge(dfString,stopCodonDf,on=['chromosome_identifier','gene_id', 'transcript_id'],how='left')
-    dfString[['start_codon_init', 'stop_codon_init', 'gene_string']] = (dfString[['start_codon_init', 'stop_codon_init', 'gene_string']].fillna(''))
-    dfString['gene_string'] = "|" + dfString['start_codon_init'].astype(str) + '|' + dfString['gene_string'] + '|' + dfString['stop_codon_init'].astype(str) + "|"
-
-
-    dfString['predicted'] = False
-    dfString['gene_predicted'] = False
-
-    return dfString
-
-def getMasks(df,maskList):
-    return [df[mask] for mask in maskList]
-
-
-def getSubDfs(df,listOfPairs):
-    dfsList = []
-    for masks in listOfPairs:
-        compositeMask = (masks[0] & masks[1]) if len(masks) == 2 else masks[0]
-        newDf = df.loc[compositeMask].copy()
-        dfsList.append(newDf)
-
-    return dfsList
-
-def fillCsv(saveFilesBasePath,csvPath,isBaseline,hasBothFiles,isForwardStrand):
-    if not os.path.isfile(csvPath):
-        return False
-
-    df = pd.read_csv(csvPath)
-    df = df.sort_values(by=['gene_id', 'transcript_id', 'region_start']).reset_index(drop=True)
-    if isForwardStrand == None:
-        isForwardStrand = df.iloc[0]["is_forward_strand"]
-
-    # Initialize columns
-    df['is_first_exon'] = False
-    df['is_last_exon'] = False
-    df['is_intron_retention_exon'] = False
-
-    # Basic Masks
-    isIntron, isExon = getMasks(df,["is_intron","is_exon"])
-    isNotIntronOrExon = ~isIntron & ~isExon
-
-    dfExon, dfIntron, dfNotIntronOrExon = getSubDfs(
-        df,
-        [
-            [isExon],
-            [isIntron],
-            [isNotIntronOrExon]
-        ]
-    )
-
-    dfExon = defineFirstLastExon(dfExon)
-    dfExon = defineIntronRetentionExon(dfExon)
-    dfIntron = dropLastIntron(dfIntron)
-
-    dfExonIntron = unifiedIntronExonDf(dfExon, dfIntron)
-
-    df = pd.concat([dfExonIntron, dfNotIntronOrExon]).sort_index().reset_index(drop=True)
-    df['region_end'] = pd.to_numeric(df['region_end'], downcast='integer', errors='coerce')
-
-    startCodonDf = getCodonDf(df,'is_start_codon','start_codon_init')
-    stopCodonDf = getCodonDf(df,'is_stop_codon','stop_codon_init')
-
-    dfString = getDfString(df,startCodonDf,stopCodonDf)
-
-    df['predicted'] = False
-    df['gene_predicted'] = False
-
-
-    df.to_csv(csvPath, index=False)
-    basePath = "/".join(csvPath.split('/')[:-1]) + "/"
-
-    genePredictFilePath = f"{saveFilesBasePath}chromosomeCSVs/transcriptAndGeneBaselineFile.csv" if isBaseline else f"{saveFilesBasePath}chromosomeCSVs/transcriptAndGeneCandidateFile.csv" 
-    genePredictDf = pd.read_csv(genePredictFilePath) 
-    dfPredictString = pd.merge(dfString,genePredictDf,on=['chromosome_identifier','gene_id', 'transcript_id'],how='left')
-    dfPredictString = dfPredictString[["chromosome_identifier","gene_id", "transcript_id","start_gene","end_gene","start_transcript","end_transcript","exon_qtty","intron_retention_qtty","gene_string","is_forward_strand","predicted"]]
-    dfPredictString.to_csv(csvPath.split('.')[0]+"__gene_string.csv", index=False)
+    #TODO: Probably wrong path
     if not hasBothFiles:
-        dfPredictString["is_baseline"] = isBaseline
-        dfPredictString["is_forward_strand"] = isForwardStrand
-        dfPredictString["gene_predicted"] = False
-        dfPredictString.to_csv(f"{basePath}/gene_transcript_predicted.csv", index=False)
+        dfHelper.writeGeneStringCompleteDf()
 
-    return df, dfPredictString, isForwardStrand
-
-def fillCsvPredict(genePredictDf, csvDf, csvPath):
-    genePredictDf = genePredictDf.drop(columns=['start_gene','end_gene','start_transcript','end_transcript','gene_string'])
-    csvDf = csvDf.drop(columns=['predicted','gene_predicted'])
-
-    fullCompariosonDf = pd.merge(csvDf,genePredictDf,on=['chromosome_identifier', 'gene_id', 'transcript_id', 'is_forward_strand'], how='left')
-
-    fullCompariosonDf.to_csv(csvPath, index=False)
-
-def filterDataframes(df,commonGenes,matchCommonValues,isBaseline):
-    newDf = None
-    mask = df['gene_string'].isin(commonGenes)
-    newDf = df[mask if matchCommonValues else ~mask].copy()
-
-    newDf["is_baseline"] = isBaseline
-
-    return newDf
+    return dfHelper
 
 def predictedOrNotDf(candidateDf,baselineDf,predicted):
     newDf = pd.concat([candidateDf, baselineDf])
     newDf["predicted"] = predicted
+    newDf.drop(columns="gene_predicted", inplace=True)
 
     return newDf
 
 def checkIfValuesCross(a_start, a_end, b_start, b_end):
     return not (a_end < b_start or b_end < a_start)
 
-def getSameStrandDf(baselineDf, candidateDf):
+def addSameStrandDf(candidateDfHelper: FillDataHelper, baselineDfHelper: FillDataHelper, genePredictionDf):
+    candidateDf, baselineDf = (
+        candidateDfHelper.getGeneStringDf(),
+        baselineDfHelper.getGeneStringDf(),
+    )
 
-    candidateDf["read"] = candidateDf.apply(
-        lambda row: [
-            row["start_transcript"] % 3,
-            row["start_transcript"],
-            row["end_transcript"],
-        ],
+    candidateDf["strand"] = candidateDf["strand"].astype(int)
+    baselineDf["strand"] = baselineDf["strand"].astype(int)
+
+
+    candidateStrands = [
+        candidateDf.loc[candidateDf["strand"] == i, ["min_pos", "max_pos"]].to_numpy()
+        for i in range(3)
+    ]
+
+    baselineDfUnpredicted = baselineDf.loc[~baselineDf["gene_predicted"]].copy()
+
+    baselineDfUnpredicted["same_strand"] = baselineDfUnpredicted.apply(
+        lambda row: any(
+            checkIfValuesCross(row["min_pos"], row["max_pos"], minP, maxP)
+            for minP, maxP in candidateStrands[row["strand"]]
+        ),
         axis=1,
     )
 
-    baselineDf["read_list"] = baselineDf.apply(
-        lambda row: [
-            row["start_transcript"] % 3,
-            row["start_transcript"],
-            row["end_transcript"],
-        ],
-        axis=1,
+    sameStrandDf = (
+        baselineDfUnpredicted
+        .groupby("gene_id", as_index=False)["same_strand"]
+        .any()
     )
 
-    readCandidate = candidateDf[['gene_id', 'read']]
-    readListBaseline = (
-        baselineDf.groupby('gene_id')['read_list']
-        .apply(list)
-    )
-    joinedBaseline = pd.merge(readListBaseline, readCandidate, on='gene_id', how='left')
-    
-    joinedBaseline["same_strand"] = joinedBaseline.apply(
-        lambda row: any(row['read'][0] == line[0] and checkIfValuesCross(row['read'][1], row['read'][2], line[1], line[2]) for line in row['read_list']),
-        axis=1
+    baselineDfPredicted = (
+        baselineDf.loc[baselineDf["gene_predicted"], ["gene_id"]]
+        .drop_duplicates()
+        .assign(same_strand=True)
     )
 
-    joinedBaseline = joinedBaseline[['gene_id', 'same_strand']]
+    candidateGenes = (
+        candidateDf[["gene_id"]]
+        .drop_duplicates()
+        .assign(same_strand=False)
+    )
 
-    return joinedBaseline
+    sameStrandDf = (
+        pd.concat(
+            [baselineDfPredicted, sameStrandDf, candidateGenes],
+            ignore_index=True,
+        )
+        .drop_duplicates("gene_id", keep="first")
+    )
 
-def compareGenes(sf,baselineDf,candidateDf,isForwardStrand):
+    genePredictionDf.drop(columns="same_strand", inplace=True)
+    genePredictionDf = pd.merge(genePredictionDf, sameStrandDf, on='gene_id', how='left')
 
-    # get unique values from both
-    candidateGenes = candidateDf['gene_string'].unique()
-    baselineGenes = baselineDf['gene_string'].unique()
+    return genePredictionDf
 
-    # intersection
-    commonGenes = set(candidateGenes) & set(baselineGenes)
+def getGenePrediction(candidateDfHelper: FillDataHelper, baselineDfHelper: FillDataHelper, commonGenes):
+    candidateCommon = candidateDfHelper.getIntersectionGenes(commonGenes, True)
+    baselineCommon = baselineDfHelper.getIntersectionGenes(commonGenes, True)
+    candidateNotCommon = candidateDfHelper.getIntersectionGenes(commonGenes, False)
+    baselineNotCommon = baselineDfHelper.getIntersectionGenes(commonGenes, False)
 
-    # filter original DataFrames by baseline and common or not
-    candidateCommon = filterDataframes(candidateDf,commonGenes,True,False)
-    baselineCommon = filterDataframes(baselineDf,commonGenes,True,True)
-    candidateNotCommon = filterDataframes(candidateDf,commonGenes,False,False)
-    baselineNotCommon = filterDataframes(baselineDf,commonGenes,False,True)
-
-    # predicted true/false
     predictedDf = predictedOrNotDf(candidateCommon, baselineCommon, True)
     notPredictedDf = predictedOrNotDf(candidateNotCommon, baselineNotCommon, False)
 
-
-    # join predicted and non predicted
-    fullDf = pd.concat([predictedDf,notPredictedDf]).copy()
-
-    # get gene_predicted if any transcript predicts
+    genePredictionDf = pd.concat([predictedDf,notPredictedDf]).copy()
     anyTranscriptPredictedDf = (
-        fullDf.groupby('gene_id')['predicted']
+        genePredictionDf.groupby('gene_id')['predicted']
         .any()
         .rename("gene_predicted")   # rename the Series itself
         .reset_index()              # turn it back into a DataFrame
     )
-    fullDf = pd.merge(fullDf,anyTranscriptPredictedDf,on="gene_id", how="left")
-    fullDf["is_forward_strand"] = isForwardStrand
+    genePredictionDf = pd.merge(genePredictionDf,anyTranscriptPredictedDf,on="gene_id", how="left")
 
-    joinedBaseline = getSameStrandDf(baselineDf, candidateDf)
-
-    fullDf = pd.merge(fullDf, joinedBaseline, on='gene_id', how='left')
-    fullDf[fullDf['gene_predicted'], 'same_strand'] = True
+    return genePredictionDf
 
 
-    fullDf.to_csv(f"{sf}/gene_transcript_predicted.csv", index=False)
+def findPrediction(reader: Reader, candidateDfHelper: FillDataHelper, baselineDfHelper: FillDataHelper, chromosomePath):
+    candidateGenes, baselineGenes = candidateDfHelper.getUniqueGeneString(), baselineDfHelper.getUniqueGeneString()
+    commonGenes = set(candidateGenes) & set(baselineGenes)
+    genePredictionDf = getGenePrediction(candidateDfHelper, baselineDfHelper, commonGenes)
+    genePredictionDf = addSameStrandDf(candidateDfHelper, baselineDfHelper, genePredictionDf)
+    genePredictionDf = genePredictionDf[reader.getGeneStringDfCols()]
 
-    return fullDf
+    genePredictionDf.to_csv(reader.getDefinedChromosomeSingleGeneStringPath(chromosomePath), index=False)
 
-
-def getChromosomeFolders(saveFilesBasePath):
-    folder = f"{saveFilesBasePath}chromosomeCSVs"
-    subfolders = [f.path for f in os.scandir(folder) if f.is_dir()]
+    genePredictionDf = genePredictionDf[['chromosome_identifier', 'gene_id', 'transcript_id', 'is_forward_strand', 'predicted', 'gene_predicted']]
     
-    return subfolders
+    candidateDfHelper.updateMainDf(genePredictionDf)
+    baselineDfHelper.updateMainDf(genePredictionDf)
 
-def hasBaseline(sf):
-    return os.path.isfile(f"{sf}/processedBaselineFile.csv")
-
-def hasCandidate(sf):
-    return os.path.isfile(f"{sf}/processedCandidateFile.csv")
-
-def appendFile(inputFile,outputFile):
-    if not os.path.exists(inputFile):
-        return
-
-    with open(inputFile,"r") as f_in, open(outputFile,"a") as f_out:
-        inputData = f_in.read().split("\n",1)[1]
-        f_out.write(inputData)
-
-def fillData(saveFilesBasePath,extraArgs):
-    chromosomeFolders = getChromosomeFolders(saveFilesBasePath)
-    for sf in chromosomeFolders:
-        isForwardStrand = None
-        if not (hasBaseline(sf) or hasCandidate(sf)):
+def fillData(reader: Reader):
+    chromosomeFolders = reader.getChromosomeFoldersList()
+    for chromosomePath in chromosomeFolders:
+        hasCandidate, hasBaseline = reader.hasGtfFile(chromosomePath, "candidate"), reader.hasGtfFile(chromosomePath, "baseline")
+        hasBothFiles = hasCandidate and hasBaseline
+        if not (hasBaseline or hasCandidate):
             continue
 
-        if hasBaseline(sf):
-            baselineDf, baselineGeneStringDf, isForwardStrand = fillCsv(saveFilesBasePath,f"{sf}/processedBaselineFile.csv",True,hasCandidate(sf),isForwardStrand)
+        if hasBaseline:
+            baselineDfHelper = fillCsv(reader, chromosomePath, "baseline", hasBothFiles)
 
-        if hasCandidate(sf):
-            candidateDf, candidateGeneStringDf, isForwardStrand = fillCsv(saveFilesBasePath,f"{sf}/processedCandidateFile.csv",False,hasBaseline(sf),isForwardStrand)
+        if hasCandidate:
+            candidateDfHelper = fillCsv(reader, chromosomePath, "candidate", hasBothFiles)
 
-        if hasBaseline(sf) and hasCandidate(sf):
-            predictedDf = compareGenes(sf, baselineGeneStringDf, candidateGeneStringDf, isForwardStrand)
-            fillCsvPredict(predictedDf,baselineDf,f"{sf}/processedBaselineFile.csv")
-            fillCsvPredict(predictedDf,candidateDf,f"{sf}/processedCandidateFile.csv")
-
+        if hasBothFiles:
+            findPrediction(reader, candidateDfHelper, baselineDfHelper, chromosomePath)
