@@ -2,6 +2,8 @@ from sgevalviz.reader import Reader
 from pandas import DataFrame, Series
 import pandas as pd
 import numpy as np
+from __future__ import annotations
+from itertools import product
 
 class FillDataHelper:
     def __init__(self, chromosomePath: str, groupType: str, reader: Reader):
@@ -27,12 +29,17 @@ class FillDataHelper:
         self.dfExon = None
         self.dfIntron = None
         self.dfNotIntronOrExon = None
+        self.dfTranscript = None
+        self.dfGenePredicted = None
 
-    def sortBy(self, sortList: list[str]):
-        self.df = self.df.sort_values(by=sortList).reset_index(drop=True)
+    def getStrand(self):
+        return "forward" if self.isForwardStrand else "reverse"
 
-    def getUniqueGeneString(self):
-        return self.dfGeneString["gene_string"].unique()
+    def getDf(self):
+        return self.df
+
+    def getDfTranscript(self):
+        return self.dfTranscript
 
     def getMasks(self, maskList: list[str]) -> list[Series]:
         return [self.df[mask] for mask in maskList]
@@ -49,7 +56,11 @@ class FillDataHelper:
         self.dfIntron = dfIntron
         self.dfNotIntronOrExon = dfNotIntronOrExon
 
-    def defineFirstLastExon(self):
+        self.dfExon = self.dfExon.sort_values(by=['gene_id', 'transcript_id', 'region_start']).reset_index(drop=True)
+        self.dfIntron = self.dfIntron.sort_values(by=['gene_id', 'transcript_id', 'region_start']).reset_index(drop=True)
+        self.dfNotIntronOrExon = self.dfNotIntronOrExon.sort_values(by=['gene_id', 'transcript_id', 'region_start']).reset_index(drop=True)
+
+    def defineFirstLastSingleExon(self):
         g = self.dfExon.groupby(["gene_id","transcript_id"])
 
         smaller = g.head(1).index
@@ -60,6 +71,7 @@ class FillDataHelper:
 
         self.dfExon.loc[firstExon, "is_first_exon"] = True
         self.dfExon.loc[lastExon, "is_last_exon"] = True
+        self.dfExon["is_single_exon"] = self.dfExon["is_first_exon"] & self.dfExon["is_last_exon"]
 
     def defineIntronRetentionExon(self):
         self.dfExon["exon_start_repeats"] = self.dfExon.duplicated("region_start", keep=False)
@@ -77,6 +89,10 @@ class FillDataHelper:
         lastIntronId = dfLocal.tail(1).index
         self.dfIntron.drop(lastIntronId, inplace=True)
 
+    def setNucleotidesData(self):
+        self.dfExon["nucleotide_size"] = (self.dfExon["region_end"] - self.dfExon["region_start"]) + 1
+        self.dfIntron["nucleotide_size"] = (self.dfIntron["region_end"] - self.dfIntron["region_start"]) + 1
+
     def unifyDf(self):
         df = pd.concat([self.dfExon, self.dfIntron]).sort_index().reset_index(drop=True)
         df = df.sort_values(by=['gene_id', 'transcript_id', 'region_start']).reset_index(drop=True)
@@ -89,84 +105,208 @@ class FillDataHelper:
         self.df = pd.concat([df, self.dfNotIntronOrExon]).sort_index().reset_index(drop=True)
         self.df['region_end'] = pd.to_numeric(self.df['region_end'], downcast='integer', errors='coerce')
 
-    def enrinchDf(self):
-        self.setIntronExonAndOthers()
-        self.defineFirstLastExon()
-        self.defineIntronRetentionExon()
-        self.dropLastIntron()
-        self.unifyDf()
+    def setTranscriptDf(self):
+        self.df = self.df.sort_values(by=["gene_id", "transcript_id", "region_start"])
 
-    def addCodons(self):
-        codonNames = ["start_codon", "stop_codon"]
-
-        for codonName in codonNames:
-            codonDf = self.df.loc[self.df[f"is_{codonName}"]]
-            codonDf = codonDf[['chromosome_identifier','gene_id','transcript_id','region_start']]
-            codonDf.rename(columns={'region_start':f"{codonName}_init"},inplace=True)
-            self.dfString = pd.merge(self.dfString, codonDf, on=["chromosome_identifier", "gene_id", "transcript_id"], how="left") 
-
-        cols = ["start_codon_init", "stop_codon_init", "gene_string"]
-        self.dfString[cols] = self.dfString[cols].fillna("")
-
-        self.dfString["gene_string"] = (
-            "|"
-            + self.dfString["start_codon_init"].astype(str)
-            + "|"
-            + self.dfString["gene_string"].astype(str)
-            + "|"
-            + self.dfString["stop_codon_init"].astype(str)
-            + "|"
+        df = self.df.assign(
+            start_codon_pos=self.df["region_start"].where(self.df["is_start_codon"]),
+            stop_codon_pos=self.df["region_start"].where(self.df["is_stop_codon"]),
+            exon_start=self.df["region_start"].where(self.df["is_exon"]),
+            exon_end=self.df["region_end"].where(self.df["is_exon"]),
+            intron_start=self.df["region_start"].where(self.df["is_intron"]),
+            intron_end=self.df["region_end"].where(self.df["is_intron"]),
+            exon_size=self.df["nucleotide_size"].where(self.df["is_exon"]),
+            intron_size=self.df["nucleotide_size"].where(self.df["is_intron"])
         )
 
-        self.dfString["predicted"] = False
-        self.dfString["gene_predicted"] = False
+        self.dfTranscript = (
+            df.groupby(["gene_id", "transcript_id"])
+            .agg(
+                start_codon=("start_codon_pos", "min"),
+                stop_codon=("stop_codon_pos", "min"),
+                intron_starts=("intron_start", lambda s: s.dropna().tolist()),
+                intron_ends=("intron_end", lambda s: s.dropna().tolist()),
+                exon_starts=("exon_start", lambda s: s.dropna().tolist()),
+                exon_ends=("exon_end", lambda s: s.dropna().tolist()),
+                min_exon_start=("exon_start", "min"),
+                max_exon_end=("exon_end", "max"),
+                intron_retention_exons=("is_intron_retention_exon", "sum"),
+                number_of_exons=("is_exon", "sum"),
+                exon_avg_size=("exon_size", "mean"),
+                intron_avg_size=("intron_size", "mean"),
+                number_of_cds_nucleotides=("exon_size", "sum"),
+                number_of_intron_nucleotides=("intron_size", "sum")
+            )
+            .reset_index()
+        )
 
 
-    def generateGeneStringDf(self):
-        dfString = self.df.loc[self.df['is_exon']].copy()
-        dfString['gene_string'] = dfString['region_start'].astype(str) + ';' + dfString['region_end'].astype(str)
+        self.dfTranscript["introns"] = [
+           list(zip(s, e)) for s, e in map(zip, self.dfTranscript["intron_starts"], self.dfTranscript["intron_ends"])
+        ]
 
-        self.dfString = dfString.groupby(['chromosome_identifier','gene_id', 'transcript_id']
-        ).agg(
-            min_pos=("region_start", "min"), 
-            max_pos=("region_end", "max"), 
-            gene_string=('gene_string', '/'.join), # join all gene_string values
-            exon_qtty=('gene_string', 'size'), # count how many were merged
-            intron_retention_qtty=('is_intron_retention_exon','sum') #count how many of the exons are intron retention
-        ).reset_index()
+        self.dfTranscript["exons"] = [
+           list(zip(s, e)) for s, e in map(zip, self.dfTranscript["exon_starts"], self.dfTranscript["exon_ends"])
+        ]
+
+        self.dfTranscript["cds_nucleotides"] = [
+            set().union(*(range(s, e + 1) for s, e in exons)) if exons else set()
+            for exons in self.dfTranscript["exons"]
+        ]
+
+        exonList = self.dfTranscript["exons"]
+
 
         if self.isForwardStrand:
-            self.dfString["strand"] = self.dfString["min_pos"] % 3
+            self.dfTranscript["frame"] = self.dfTranscript["min_exon_start"] % 3
+            firstExons = [l[0] if l else (None, None) for l in exonList]
+            lastExons  = [l[-1] if l else (None, None) for l in exonList]
         else:
-            self.dfString["strand"] = self.dfString["max_pos"] % 3            
+            self.dfTranscript["frame"] = self.dfTranscript["max_exon_end"] % 3
+            firstExons = [l[-1] if l else (None, None) for l in exonList]
+            lastExons  = [l[0] if l else (None, None) for l in exonList]
 
-        self.addCodons()
+        self.dfTranscript["first_exon"] = firstExons
+        self.dfTranscript["last_exon"] = lastExons
 
-        self.dfGeneString = pd.merge(self.dfString, self.geneTranscriptDf, on=['chromosome_identifier','gene_id', 'transcript_id'],how='left')
-        self.dfGeneString["is_baseline"] = True if self.groupType == "baseline" else False
-        self.dfGeneString["gene_predicted"] = False
-        self.dfGeneString["same_strand"] = False
-        self.dfGeneString = self.dfGeneString[self.reader.getGeneStringDfCols()]
+        self.dfTranscript["max_intron_retention"] = (
+            self.dfTranscript.groupby("gene_id")["intron_retention_exons"]
+            .transform("max")
+        )
 
-    def writeGeneStringDf(self):
-        self.dfGeneString = self.dfGeneString[self.reader.getGeneStringDfCols()]
-        self.dfGeneString.to_csv(self.geneStringPath, index=False)
+        self.dfTranscript["has_max_intron_retention"] = self.dfTranscript["max_intron_retention"] == self.dfTranscript["intron_retention_exons"]
+        self.dfTranscript["gene_has_intron_retention"] = self.dfTranscript["max_intron_retention"] > 0
 
-    def writeGeneStringCompleteDf(self):
-        self.dfGeneString = self.dfGeneString[self.reader.getGeneStringDfCols()]
-        self.dfGeneString.to_csv(self.geneStringCompletePath, index=False)
+        self.dfTranscript["has_start_codon"] = self.dfTranscript["start_codon"].notna()
+        self.dfTranscript["has_stop_codon"] = self.dfTranscript["stop_codon"].notna()
+
+
+        self.dfTranscript.drop(["exon_starts", "exon_ends", "intron_retention_exons", "max_intron_retention"], axis=1, inplace=True)
+
+        self.dfTranscript.rename(columns={
+            "start_codon": f"{self.groupType}_start_codon",
+            "has_start_codon": f"{self.groupType}_has_start_codon",
+            "stop_codon": f"{self.groupType}_stop_codon",
+            "has_stop_codon": f"{self.groupType}_has_stop_codon",
+            "gene_id": f"{self.groupType}_gene_id",
+            "transcript_id": f"{self.groupType}_transcript_id",
+            "frame": f"{self.groupType}_frame",
+            "introns": f"{self.groupType}_introns",
+            "intron_starts": f"{self.groupType}_{'donnors' if self.isForwardStrand else 'acceptors'}",
+            "intron_ends": f"{self.groupType}_{'acceptors' if self.isForwardStrand else 'donnors'}",
+            "exons": f"{self.groupType}_exons",
+            "first_exon": f"{self.groupType}_first_exon",
+            "last_exon": f"{self.groupType}_last_exon",
+            "has_max_intron_retention": f"{self.groupType}_has_max_intron_retention",
+            "gene_has_intron_retention": f"{self.groupType}_gene_has_intron_retention",
+            "number_of_exons": f"{self.groupType}_number_of_exons",
+            "exon_avg_size": f"{self.groupType}_exon_avg_size",
+            "intron_avg_size": f"{self.groupType}_intron_avg_size",
+            "number_of_cds_nucleotides": f"{self.groupType}_number_of_cds_nucleotides",
+            "number_of_intron_nucleotides": f"{self.groupType}_number_of_intron_nucleotides",
+            "min_exon_start": f"{self.groupType}_cds_min",
+            "max_exon_end": f"{self.groupType}_cds_max",
+            "cds_nucleotides": f"{self.groupType}_cds_nucleotides"
+        }, inplace=True)
+
+    def getIntersectionSize(self, min1, max1, cds1, min2, max2, cds2):
+        if not cds1 or not cds2:
+            return 0
+        if max1 < min2 or max2 < min1:
+            return 0
+
+        return len(cds1 & cds2)
+
+    def getSetLen(self, listA, listB):
+        return len(set(listA) & set(listB)) if listA and listB else 0
+
+    def findCandidateTranscriptItsBaselineTranscript(self, baseline: FillDataHelper):
+        baselineDf = baseline.getDfTranscript()
+        candidateDf = self.dfTranscript
+
+        candidates = list(zip(
+            candidateDf["candidate_gene_id"],
+            candidateDf["candidate_transcript_id"],
+            candidateDf["candidate_cds_nucleotides"],
+            candidateDf["candidate_cds_min"],
+            candidateDf["candidate_cds_max"]
+        ))
+        
+        baselines = list(zip(
+            baselineDf["baseline_gene_id"],
+            baselineDf["baseline_transcript_id"],
+            baselineDf["baseline_cds_nucleotides"],
+            baselineDf["baseline_cds_min"],
+            baselineDf["baseline_cds_max"]
+        ))
+
+        results = {}
+
+        for (cand_gene, cand_tx, cand_cds, cand_min, cand_max), (base_gene, base_tx, base_cds, base_min, base_max) in product(candidates, baselines):
+
+            
+            score = self.getIntersectionSize(cand_min, cand_max, cand_cds, base_min, base_max, base_cds)
+
+            results_key = f"{cand_gene}___{cand_tx}"
+            if (not results_key in results) or (results[results_key]["nucleotides_predicted"] < score):
+                results[results_key] = {
+                    "nucleotides_predicted": score,
+                    "predicted": score > 0,
+                    "totally_predicted": (score == len(cand_cds) and score == len(base_cds)),
+                    "candidate_gene_id": cand_gene,
+                    "baseline_gene_id": base_gene if score > 0 else None,
+                    "candidate_transcript_id": cand_tx,
+                    "baseline_transcript_id": base_tx if score > 0 else None,
+                }
+
+        baseDfGenePredicted = pd.DataFrame(list(results.values()))
+        baseDfGenePredicted = baseDfGenePredicted.merge(candidateDf, on=["candidate_gene_id", "candidate_transcript_id"], how="left")
+        self.dfGenePredicted = baseDfGenePredicted.merge(baselineDf, on=["baseline_gene_id", "baseline_transcript_id"], how="left")
+        self.dfGenePredicted.drop(columns=["candidate_cds_nucleotides", "baseline_cds_nucleotides"], errors="ignore",  inplace=True)
+
+        self.dfGenePredicted["start_codon_predicted"] = self.dfGenePredicted["candidate_start_codon"] == self.dfGenePredicted["baseline_start_codon"]
+        self.dfGenePredicted["stop_codon_predicted"] = self.dfGenePredicted["candidate_stop_codon"] == self.dfGenePredicted["baseline_stop_codon"]
+        self.dfGenePredicted["start_and_stop_codon_predicted"] = self.dfGenePredicted["start_codon_predicted"] & self.dfGenePredicted["stop_codon_predicted"]
+        self.dfGenePredicted["first_exon_predicted"] = [
+            fb == fc
+            for fb, fc in zip(self.dfGenePredicted["baseline_first_exon"], self.dfGenePredicted["candidate_first_exon"]) 
+        ]
+        self.dfGenePredicted["last_exon_predicted"] = [
+            lb == lc
+            for lb, lc in zip(self.dfGenePredicted["baseline_last_exon"], self.dfGenePredicted["candidate_last_exon"]) 
+        ]
+        self.dfGenePredicted["first_and_last_exon_predicted"] = self.dfGenePredicted["first_exon_predicted"] & self.dfGenePredicted["last_exon_predicted"]
+        self.dfGenePredicted["donnors_predicted"] = [
+            self.getSetLen(db, dc)
+            for db, dc in zip(self.dfGenePredicted["baseline_donnors"], self.dfGenePredicted["candidate_donnors"])
+        ]
+        self.dfGenePredicted["acceptors_predicted"] = [
+            self.getSetLen(ab, ac)
+            for ab, ac in zip(self.dfGenePredicted["baseline_acceptors"], self.dfGenePredicted["candidate_acceptors"])
+        ]
+        self.dfGenePredicted["exons_predicted"] = [
+            self.getSetLen(eb, ec)
+            for eb, ec in zip(self.dfGenePredicted["baseline_exons"], self.dfGenePredicted["candidate_exons"])
+        ]
+        self.dfGenePredicted["introns_predicted"] = [
+            self.getSetLen(ib, ic)
+            for ib, ic in zip(self.dfGenePredicted["baseline_introns"], self.dfGenePredicted["candidate_introns"])
+        ]
+
+        return self.dfGenePredicted
+
+
+    def enrinchDf(self):
+        self.setIntronExonAndOthers()
+        self.defineFirstLastSingleExon()
+        self.defineIntronRetentionExon()
+        self.dropLastIntron()
+        self.setNucleotidesData()
+        self.unifyDf()
+        self.setTranscriptDf()
 
     def writeDf(self):
         self.df.to_csv(self.path, index=False)
 
-    def getIntersectionGenes(self, commonGenes, getCommonValues):
-        mask = self.dfGeneString["gene_string"].isin(commonGenes)
-        return self.dfGeneString[mask if getCommonValues else ~mask].copy()
-
     def getGeneStringDf(self):
         return self.dfGeneString.copy()
-
-    def updateMainDf(self, genePredictionDf):
-        self.df = self.df.drop(columns=['predicted','gene_predicted'])
-        self.df = pd.merge(self.df, genePredictionDf, on=['chromosome_identifier', 'gene_id', 'transcript_id', 'is_forward_strand'], how='left')
-        self.writeDf()

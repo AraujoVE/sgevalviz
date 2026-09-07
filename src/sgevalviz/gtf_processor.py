@@ -43,14 +43,15 @@ class GtfProcessor:
         return dict(gtfParams)
 
     def extractGeneAndTranscriptId(self, gtfParams: dict[str, str]):
-        extraAttributesList = gtfParams["extraAttributes"].strip().split(" ")
+        extraAttributesList = " ".join(gtfParams["extraAttributes"].strip().split()).split()
         featureType = gtfParams["featureType"]
         extraAttribute = None
 
         if len(extraAttributesList) == 1:
             extraAttribute = extraAttributesList[0]
         else:
-            extraAttributesDict = {odd: even.strip("\n").strip(";").strip('"') for odd, even in pairwise(extraAttributesList)}
+            values = [v.strip("\n").strip(";").strip('"') for v in extraAttributesList[1::2] if v != ""]
+            extraAttributesDict = {k: v for k, v in zip(extraAttributesList[0::2], values)}
 
 
         if featureType == "gene" and extraAttribute:
@@ -66,7 +67,7 @@ class GtfProcessor:
 
     def loadConfig(self):
         configName = self.reader.getGtfTransformationName(self.groupType)
-        isStandardConfig = self.reader.getGtfTransformationType(self.groupType)
+        isStandardConfig = self.reader.getGtfTransformationType(self.groupType) == "standard"
         try:
             if isStandardConfig:
                 json_str = resources.read_text("sgevalviz.configs", f"{configName}.json", encoding="utf-8")

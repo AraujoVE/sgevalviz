@@ -13,6 +13,7 @@ def writeProcessedLine(file, chromosomeId, gtfParams, lineType, startPos, endPos
 
     isFirstExon = "False"
     isLastExon = "False"
+    isSingleExon = "False"
     isIntronRetentionExon = "False"
 
     isForwardStrand = str(gtfParams["strand"] == "+")
@@ -22,6 +23,9 @@ def writeProcessedLine(file, chromosomeId, gtfParams, lineType, startPos, endPos
 
     predicted = "False"
     genePredicted = "False"
+
+    nucleotideSize = ""
+    nucleotideList = ""
 
     newList = [
         chromosomeId,
@@ -33,10 +37,13 @@ def writeProcessedLine(file, chromosomeId, gtfParams, lineType, startPos, endPos
         isStopCodon,
         isFirstExon,
         isLastExon,
+        isSingleExon,
         isIntronRetentionExon,
         isForwardStrand,
         regionStart,
         regionEnd,
+        nucleotideSize,
+        nucleotideList,
         predicted,
         genePredicted
     ]

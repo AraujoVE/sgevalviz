@@ -1,6 +1,7 @@
 import os
 import shutil
 import pandas as pd
+from typing import Literal
 
 class Reader:
     def __init__(self, saveFilesBasePath, candidatePath, baselinePath, extraArgs):
@@ -24,22 +25,15 @@ class Reader:
             self.getSingleTmpFolderPath(),
             self.getFinalDataFolderPath()
         ]
-        newPlotFolders = [
-            self.getPlotsFolderPath("candidate"),
-            self.getPlotsFolderPath("baseline")
-        ]
 
-        if not self.hasParam("no-pre-process"):
-            for folder in newPreProcessFolders:
-                if os.path.exists(folder):
-                    shutil.rmtree(folder)
-                os.makedirs(folder,exist_ok=True)
+        for folder in newPreProcessFolders:
+            if os.path.exists(folder):
+                shutil.rmtree(folder)
+            os.makedirs(folder,exist_ok=True)
 
-        if not self.hasParam("no-plot"):
-            for folder in newPreProcessFolders:
-                if os.path.exists(folder):
-                    shutil.rmtree(folder)
-                os.makedirs(folder,exist_ok=True)
+        with open(self.getStatisticsFile(), "w") as f: f.write("")
+        statisticsDf = pd.DataFrame(columns=["identifier","value"])
+        statisticsDf.to_csv(self.getStatisticsFile(),index=False)
 
     def initializeChromosomeFolder(self, chromosomeId):
         chromosomePath = f"{self.getChromosomesFolderPath()}/{chromosomeId}"
@@ -71,9 +65,6 @@ class Reader:
     def getFinalDataFolderPath(self):
         return f"{self.basePath}/finalData"
 
-    def getPlotsFolderPath(self, groupType):
-        return f"{self.basePath}/{"Precision" if groupType == 'candidate' else "Recall"}Plots"
-
     # SingleTmp file paths
 
     def getSingleFilePath(self, groupType, isGtf):
@@ -84,8 +75,7 @@ class Reader:
 
     def getChromosomePath(self, groupType, chromosomeId, isGtf):
         fileType = "processedGtf" if isGtf else "geneTranscript"
-        return f"{self.getChromosomeFolderPath(chromosomeId)}/{fileType}_{groupType}.csv"    
-
+        return f"{self.getChromosomeFolderPath(chromosomeId)}/{fileType}_{groupType}.csv"
 
     def getDefinedChromosomePath(self, chromosomePath, groupType, fileType):
         return f"{chromosomePath}/{fileType}_{groupType}.csv"
@@ -93,24 +83,8 @@ class Reader:
     def getDefinedChromosomeSingleGeneStringPath(self, chromosomePath):
         return f"{chromosomePath}/singleGeneString.csv"
 
-    def getSingleGeneStringPath(self):
-        return f"{self.getFinalDataFolderPath()}/singleGeneString.csv"
-
-    def getDefinedChromosomeStatistics(self, chromosomePath, groupType):
-        statisticType = "recall" if groupType == "baseline" else "precision"
-        return f"{chromosomePath}/{statisticType}Statistics.csv"
-
-    def getFinalStatistics(self, groupType):
-        statisticType = "recall" if groupType == "baseline" else "precision"
-        return f"{self.getFinalDataFolderPath()}/{statisticType}Statistics.csv"
-
-    def getFinalStatisticsJson(self, groupType):
-        statisticType = "recall" if groupType == "baseline" else "precision"
-        return f"{self.getFinalDataFolderPath()}/{statisticType}Statistics.json"
-
-
-    def getDefinedChromosomeNucleotides(self, chromosomePath, groupType):
-        return f"{chromosomePath}/Nucleotides_{groupType}.csv"
+    def getStatisticsFile(self):
+        return f"{self.basePath}/statistics.csv"
 
     ####################################################################################################
     ####################################################################################################
@@ -129,16 +103,13 @@ class Reader:
         return ['chromosome_identifier','is_forward_strand','gene_id','transcript_id','start_gene','end_gene','start_transcript','end_transcript']
 
     def getProcessedDfCols(self):
-        return ['chromosome_identifier', 'gene_id', 'transcript_id', 'is_exon', 'is_intron', 'is_start_codon', 'is_stop_codon', 'is_first_exon', 'is_last_exon', 'is_intron_retention_exon', 'is_forward_strand', 'region_start', 'region_end', 'predicted', 'gene_predicted']
+        return ['chromosome_identifier', 'gene_id', 'transcript_id', 'is_exon', 'is_intron', 'is_start_codon', 'is_stop_codon', 'is_first_exon', 'is_last_exon', 'is_single_exon', 'is_intron_retention_exon', 'is_forward_strand', 'region_start', 'region_end', 'nucleotide_size', 'nucleotide_list','predicted', 'gene_predicted']
 
     def getGeneStringDfCols(self):
         return ["chromosome_identifier","gene_id", "transcript_id","start_gene","end_gene","start_transcript","end_transcript","min_pos","max_pos","strand","exon_qtty","intron_retention_qtty","gene_string","is_forward_strand","is_baseline","same_strand","predicted","gene_predicted"]
 
     def getStatisticsDf(self):
-        return ["identifier","value"]
-
-    def getNucleotidesDf(self):
-        return []
+        return ["identifier","value"]        
 
     ####################################################################################################
     ####################################################################################################
@@ -187,9 +158,6 @@ class Reader:
         }
 
         return gtfTransformation
-    
-    def needsGtfTransformation(self, groupType):
-        return self.gtfTransformation[groupType]["transformation"]
 
     def getGtfTransformationName(self, groupType):
         return self.gtfTransformation[groupType]["name"]
@@ -204,9 +172,6 @@ class Reader:
 
     ### Argument verification
     # This block deals with methods used to check the extra parameters passed to the function
-
-    def hasParam(self, param):
-        return any(arg.split("=", 1)[0] == f"--{param}" for arg in self.args)
 
     def getParam(self, param, defaultValue=""):
         for arg in self.args:
@@ -233,8 +198,102 @@ class Reader:
 
         return os.path.isfile(filePath)
 
-    def getProcessedData(self, chromosomePath, groupType):
-        filePath = self.getDefinedChromosomePath(chromosomePath, groupType, "processedGtf")
-        hasFile = os.path.exists(filePath)
+    ####################################################################################################
+    ####################################################################################################
+    ####################################################################################################
 
-        return pd.read_csv(filePath) if hasFile else None
+    ### Statistics Writing
+    # Statistics Writing
+
+    def setFinalResults(self):
+        statisticsPath = self.getStatisticsFile()
+        statisticsDf = pd.read_csv(statisticsPath)
+        groupedDf = statisticsDf.groupby("identifier")["value"].sum().reset_index(drop=True)
+
+        groupedDf.to_csv(statisticsPath, index=False)
+
+
+    def updateReference(self, baseName, partialValueBase, totalValue, multiplier = 1):
+        statisticsPath = self.getStatisticsFile()
+        statisticsDf = pd.read_csv(statisticsPath)
+        partialValue = partialValueBase * multiplier
+        newRows = pd.DataFrame([{"identifier": f"partial___{baseName}", "value": partialValue}, {"identifier": f"total___{baseName}", "value": totalValue}])
+        statisticsDf = pd.concat([statisticsDf, newRows], ignore_index=True)
+        statisticsDf.to_csv(statisticsPath, index=False)
+
+
+    def statisticsUpdate__Strand__Value(
+            self,
+            firstLevel: Literal["forward", "general", "reverse"],
+            lastLevel: Literal["reference_gene_unpredicted-percentage", "no_prediction_for_reference_on_chromosome_strand-percentage"],
+            partialValue: int,
+            totalValue:  int
+        ):
+        baseName = f"{firstLevel}__{lastLevel}"
+        multiplier = 100 if lastLevel.endswith("-percentage") else 1
+        self.updateReference(baseName, partialValue, totalValue, multiplier)
+        return
+
+    def statisticsUpdate__StrandRefGenePartPred__Value(
+            self,
+            firstLevel: Literal["forward", "general", "reverse"],
+            lastLevel: Literal["selected_model_transcript_on_same_frame_as_selected_reference_transcript-percentage", "ratio_of_number_of_exons_in_model_selected_transcript_per_reference_selected_transcript-average", "ratio_of_number_of_nucleotides_in_model_selected_transcript_per_reference_selected_transcript-average"],
+            partialValue: int,
+            totalValue:  int
+        ):
+        baseName = f"{firstLevel}__reference_gene_partially_predicted__{lastLevel}"
+        multiplier = 100 if lastLevel.endswith("-percentage") else 1
+        self.updateReference(baseName, partialValue, totalValue, multiplier)
+        return
+
+    def statisticsUpdate__StrandRefGenePredHasIntronRetExonInModel__Value(
+            self,
+            firstLevel: Literal["forward", "general", "reverse"],
+            lastLevel: Literal["reference_gene_partially_predicted", "reference_gene_predicted", "reference_gene_totally_predicted"],
+            partialValue: int,
+            totalValue:  int
+        ):
+        baseName = f"{firstLevel}__{lastLevel}__has_intron_retention_exon_in_reference__selected_reference_transcript_is_the_transcript_with_most_intron_retention_exons-percentage"
+        multiplier = 100 if lastLevel.endswith("-percentage") else 1
+        self.updateReference(baseName, partialValue, totalValue, multiplier)
+        return
+
+    def statisticsUpdate__Strand_RefGenePred_ModelTransc__Value(
+            self,
+            firstLevel: Literal["forward", "general", "reverse"],
+            secondLevel: Literal["reference_gene_partially_predicted", "reference_gene_predicted", "reference_gene_totally_predicted"],
+            thirdLevel: Literal["selected_model_transcript", "average_model_transcript"],
+            lastLevel: Literal["average_size_of_exons_per_transcript-average", "number_of_exons_per_transcript-average", "average_size_of_introns_per_transcript-average"],
+            partialValue: int,
+            totalValue:  int
+        ):
+        baseName = f"{firstLevel}__{secondLevel}__{thirdLevel}__{lastLevel}"
+        multiplier = 100 if lastLevel.endswith("-percentage") else 1
+        self.updateReference(baseName, partialValue, totalValue, multiplier)
+        return
+
+    def statisticsUpdate__StrandRefGenePredRecallPrecision__Value(
+            self,
+            firstLevel: Literal["forward", "general", "reverse"],
+            lastLevel: Literal["gene_predicted_recall", "gene_predicted_precision"],
+            partialValue: int,
+            totalValue:  int
+        ):
+        baseName = f"{firstLevel}__{lastLevel}__single_exon_occurance-percentage"
+        multiplier = 100 if lastLevel.endswith("-percentage") else 1
+        self.updateReference(baseName, partialValue, totalValue, multiplier)
+        return
+
+    def statisticsUpdate__Strand_RefGenePredRecallPrecision_ExonNumberPerTranscript__Value(
+            self,
+            firstLevel: Literal["forward", "general", "reverse"],
+            secondLevel: Literal["gene_predicted_recall", "gene_predicted_precision"],
+            thirdLevel: Literal["single_exon_selected_model_transcript", "any_quantity_exon_selected_model_transcript", "multiple_exon_selected_model_transcript"],
+            lastLevel: Literal["totally_predicted_genes_prediction-percentage", "nucleotide_prediction-percentage", "start_codon_prediction-percentage", "stop_codon_prediction-percentage", "same_time_start_codon_and_stop_codon_prediction-percentage", "average_intron_prediction-percentage", "average_exon_prediction-percentage", "first_exon_prediction-percentage", "last_exon_prediction-percentage", "same_time_first_exon_and_last_exon_prediction-percentage", "average_donnor_prediction-percentage", "average_acceptor_prediction-percentage"],
+            partialValue: int,
+            totalValue:  int
+        ):
+        baseName = f"{firstLevel}__{secondLevel}__{thirdLevel}__{lastLevel}"
+        multiplier = 100 if lastLevel.endswith("-percentage") else 1
+        self.updateReference(baseName, partialValue, totalValue, multiplier)
+        return
