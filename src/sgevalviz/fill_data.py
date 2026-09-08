@@ -277,3 +277,4 @@ def fillData(reader: Reader):
             addEmptyData(reader, baselineDfHelper)
 
     reader.setFinalResults()
+    reader.generateJson()

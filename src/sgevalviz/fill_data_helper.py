@@ -89,10 +89,6 @@ class FillDataHelper:
         lastIntronId = dfLocal.tail(1).index
         self.dfIntron.drop(lastIntronId, inplace=True)
 
-    def setNucleotidesData(self):
-        self.dfExon["nucleotide_size"] = (self.dfExon["region_end"] - self.dfExon["region_start"]) + 1
-        self.dfIntron["nucleotide_size"] = (self.dfIntron["region_end"] - self.dfIntron["region_start"]) + 1
-
     def unifyDf(self):
         df = pd.concat([self.dfExon, self.dfIntron]).sort_index().reset_index(drop=True)
         df = df.sort_values(by=['gene_id', 'transcript_id', 'region_start']).reset_index(drop=True)
@@ -104,6 +100,7 @@ class FillDataHelper:
 
         self.df = pd.concat([df, self.dfNotIntronOrExon]).sort_index().reset_index(drop=True)
         self.df['region_end'] = pd.to_numeric(self.df['region_end'], downcast='integer', errors='coerce')
+        self.df['nucleotide_size'] = (self.df['region_end'] - self.df['region_start']) + 1
 
     def setTranscriptDf(self):
         self.df = self.df.sort_values(by=["gene_id", "transcript_id", "region_start"])
@@ -316,7 +313,6 @@ class FillDataHelper:
         self.defineFirstLastSingleExon()
         self.defineIntronRetentionExon()
         self.dropLastIntron()
-        self.setNucleotidesData()
         self.unifyDf()
         self.setTranscriptDf()
 

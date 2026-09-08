@@ -2,6 +2,8 @@ import os
 import shutil
 import pandas as pd
 from typing import Literal
+import importlib.resources as resources
+import json
 
 class Reader:
     def __init__(self, saveFilesBasePath, candidatePath, baselinePath, extraArgs):
@@ -89,6 +91,9 @@ class Reader:
     
     def getSummedStatisticsFile(self):
         return f"{self.basePath}/statistics.csv"
+
+    def getJsonStatisticsFile(self):
+        return f"{self.basePath}/statistics.json"
 
     ####################################################################################################
     ####################################################################################################
@@ -313,4 +318,40 @@ class Reader:
         baseName = f"{firstLevel}__{secondLevel}__{thirdLevel}__{lastLevel}"
         multiplier = 100 if lastLevel.endswith("-percentage") else 1
         self.updateReference(baseName, partialValue, totalValue, multiplier)
+        return
+
+    ####################################################################################################
+    ####################################################################################################
+    ####################################################################################################
+
+    ### Generate Json
+    # Generate Json
+
+    def fillJsonContents(self, data, dataType, statDict):
+        if "name" in data:
+            name = data["name"]
+            roundedValue = str(round(float(statDict[name]),6))
+            data["value"] = roundedValue if dataType == "number" else f"{roundedValue}%"
+        else:
+            for key, val in data.items():
+                data[key] = self.fillJsonContents(val, dataType, statDict)
+        return data
+
+    def generateJson(self):
+        statisticsCsv = self.getSummedStatisticsFile()
+        statisticsJson = self.getJsonStatisticsFile()
+
+        df = pd.read_csv(statisticsCsv)
+        statDict = dict(zip(df["identifier"], df["value"]))
+        jsonStr = resources.read_text("sgevalviz", f"default-statistics.json", encoding="utf-8")
+        jsonDict = json.loads(jsonStr)
+
+        for i, par in enumerate(jsonDict["parameters"]):
+            data = par["data"]
+            dataType = par["data-type"]
+            newData = self.fillJsonContents(data, dataType, statDict)
+            jsonDict["parameters"][i]["data"] = newData
+
+        with open(statisticsJson, "w", encoding="utf-8") as f:
+            json.dump(jsonDict, f, indent=4)
         return

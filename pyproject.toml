@@ -37,4 +37,4 @@ where = ["src"]
 sgevalviz = "src/sgevalviz"
 
 [tool.setuptools.package-data]
-sgevalviz = ["configs/*.json"]
+sgevalviz = ["configs/*.json","default-statistics.json"]
