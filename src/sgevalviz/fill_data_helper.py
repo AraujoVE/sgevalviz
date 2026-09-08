@@ -1,8 +1,8 @@
+from __future__ import annotations
 from sgevalviz.reader import Reader
 from pandas import DataFrame, Series
 import pandas as pd
 import numpy as np
-from __future__ import annotations
 from itertools import product
 
 class FillDataHelper:
@@ -108,6 +108,7 @@ class FillDataHelper:
     def setTranscriptDf(self):
         self.df = self.df.sort_values(by=["gene_id", "transcript_id", "region_start"])
 
+
         df = self.df.assign(
             start_codon_pos=self.df["region_start"].where(self.df["is_start_codon"]),
             stop_codon_pos=self.df["region_start"].where(self.df["is_stop_codon"]),
@@ -139,18 +140,22 @@ class FillDataHelper:
             )
             .reset_index()
         )
+        #with pd.option_context("display.max_rows", None, "display.max_columns", None, "display.width", None, "display.expand_frame_repr", False):
+        #    print("Main Df")
+        #    print(self.df)
+        #    print(self.dfTranscript)
 
-
+        zipped = list(zip(self.dfTranscript["intron_starts"], self.dfTranscript["intron_ends"]))
         self.dfTranscript["introns"] = [
-           list(zip(s, e)) for s, e in map(zip, self.dfTranscript["intron_starts"], self.dfTranscript["intron_ends"])
+           list(zip(s, e)) for s, e in zip(self.dfTranscript["intron_starts"], self.dfTranscript["intron_ends"])
         ]
 
         self.dfTranscript["exons"] = [
-           list(zip(s, e)) for s, e in map(zip, self.dfTranscript["exon_starts"], self.dfTranscript["exon_ends"])
+           list(zip(s, e)) for s, e in zip(self.dfTranscript["exon_starts"], self.dfTranscript["exon_ends"])
         ]
 
         self.dfTranscript["cds_nucleotides"] = [
-            set().union(*(range(s, e + 1) for s, e in exons)) if exons else set()
+            set().union(*(range(int(s), int(e) + 1) for s, e in exons)) if exons else set()
             for exons in self.dfTranscript["exons"]
         ]
 
@@ -276,6 +281,16 @@ class FillDataHelper:
             for lb, lc in zip(self.dfGenePredicted["baseline_last_exon"], self.dfGenePredicted["candidate_last_exon"]) 
         ]
         self.dfGenePredicted["first_and_last_exon_predicted"] = self.dfGenePredicted["first_exon_predicted"] & self.dfGenePredicted["last_exon_predicted"]
+
+        for origin in ["baseline", "candidate"]:
+            for subtype in ["donnors", "acceptors", "exons", "introns"]:
+                col = f"{origin}_{subtype}"
+                self.dfGenePredicted[col] = [
+                    x if isinstance(x, list) else [] for x in self.dfGenePredicted[col]
+                ]
+
+
+
         self.dfGenePredicted["donnors_predicted"] = [
             self.getSetLen(db, dc)
             for db, dc in zip(self.dfGenePredicted["baseline_donnors"], self.dfGenePredicted["candidate_donnors"])

@@ -32,6 +32,7 @@ class Reader:
             os.makedirs(folder,exist_ok=True)
 
         with open(self.getStatisticsFile(), "w") as f: f.write("")
+        with open(self.getSummedStatisticsFile(), "w") as f: f.write("")
         statisticsDf = pd.DataFrame(columns=["identifier","value"])
         statisticsDf.to_csv(self.getStatisticsFile(),index=False)
 
@@ -84,6 +85,9 @@ class Reader:
         return f"{chromosomePath}/singleGeneString.csv"
 
     def getStatisticsFile(self):
+        return f"{self.basePath}/raw_statistics.csv"
+    
+    def getSummedStatisticsFile(self):
         return f"{self.basePath}/statistics.csv"
 
     ####################################################################################################
@@ -206,11 +210,24 @@ class Reader:
     # Statistics Writing
 
     def setFinalResults(self):
-        statisticsPath = self.getStatisticsFile()
-        statisticsDf = pd.read_csv(statisticsPath)
-        groupedDf = statisticsDf.groupby("identifier")["value"].sum().reset_index(drop=True)
+        statisticsInputPath = self.getStatisticsFile()
+        statisticsOutputPath = self.getSummedStatisticsFile()
 
-        groupedDf.to_csv(statisticsPath, index=False)
+        dfInput = pd.read_csv(statisticsInputPath)
+        dfInput["value"] = pd.to_numeric(dfInput["value"], errors="coerce")
+        dfOut = dfInput.groupby("identifier")["value"].sum().reset_index()
+        identifiers = list(set([i.split("___",1)[1] for i in dfOut["identifier"]]))
+        newDf = pd.DataFrame({"identifier": identifiers})
+        newDf["value"] = [
+            dfOut.loc[dfOut["identifier"] == f"partial___{i}", "value"].values[0] / dfOut.loc[dfOut["identifier"] == f"total___{i}", "value"].values[0]
+            if dfOut.loc[dfOut["identifier"] == f"total___{i}", "value"].values[0] != 0 else None
+            for i in newDf["identifier"]
+        ]
+
+        newDf.sort_values(by="identifier", inplace=True)
+
+        newDf.to_csv(statisticsOutputPath, index=False)
+
 
 
     def updateReference(self, baseName, partialValueBase, totalValue, multiplier = 1):

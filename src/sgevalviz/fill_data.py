@@ -38,8 +38,8 @@ def divideByTotallyAndPartiallyPredicted(strand, reader: Reader, predictedDf, ba
         hasMaxIntronRetention = df["baseline_has_max_intron_retention"].sum()
 
         for curStrand in [strand, "general"]:
-            reader.statisticsUpdate__StrandRefGenePredHasIntronRetExonInModel__Value(curStrand, predType, hasMaxIntronRetention, hasIntronRetention)
-            reader.statisticsUpdate__StrandRefGenePredHasIntronRetExonInModel__Value(curStrand, "reference_gene_predicted", hasMaxIntronRetention, hasIntronRetention)
+            for pred in [predType, "reference_gene_predicted"]:
+                reader.statisticsUpdate__StrandRefGenePredHasIntronRetExonInModel__Value(curStrand, pred, hasMaxIntronRetention, hasIntronRetention)
 
         selectedGenes = df["baseline_gene_id"].unique()
         selectedTranscripts = df[["baseline_gene_id", "baseline_transcript_id"]].copy()
@@ -51,19 +51,21 @@ def divideByTotallyAndPartiallyPredicted(strand, reader: Reader, predictedDf, ba
 
         dfSelected = curBaselineDf[curBaselineDf["transcript_predicted"] == True].groupby("baseline_gene_id"
         ).agg(
-            avg_exon_qtty=("number_of_exons","mean"),
-            avg_exon_size=("exon_avg_size","mean"),
-            avg_intron_size=("intron_avg_size","mean")
+            avg_exon_qtty=("baseline_number_of_exons","mean"),
+            avg_exon_size=("baseline_exon_avg_size","mean"),
+            avg_intron_size=("baseline_intron_avg_size","mean")
         )
 
         dfGeneral = curBaselineDf.groupby("baseline_gene_id"
         ).agg(
-            avg_exon_qtty=("number_of_exons","mean"),
-            avg_exon_size=("exon_avg_size","mean"),
-            avg_intron_size=("intron_avg_size","mean")
+            avg_exon_qtty=("baseline_number_of_exons","mean"),
+            avg_exon_size=("baseline_exon_avg_size","mean"),
+            avg_intron_size=("baseline_intron_avg_size","mean")
         )
 
-        for curDf in [dfSelected, dfGeneral]:
+        for data in [{"df": dfSelected, "string": "selected_model_transcript"}, {"df": dfGeneral, "string": "average_model_transcript"}]:
+            curDf = data["df"]
+            modelStr = data["string"]
             exonQtty = curDf["avg_exon_qtty"].sum()
             exonSize = curDf["avg_exon_size"].sum()
             intronSize = curDf["avg_intron_size"].sum()
@@ -71,9 +73,9 @@ def divideByTotallyAndPartiallyPredicted(strand, reader: Reader, predictedDf, ba
 
             for curStrand in [strand, "general"]:
                 for curPred in [predType, "reference_gene_predicted"]:
-                    reader.statisticsUpdate__Strand_RefGenePred_ModelTransc__Value(curStrand, curPred, "average_model_transcript", "average_size_of_exons_per_transcript-average", exonSize, totLen)
-                    reader.statisticsUpdate__Strand_RefGenePred_ModelTransc__Value(curStrand, curPred, "average_model_transcript", "average_size_of_introns_per_transcript-average", intronSize, totLen)
-                    reader.statisticsUpdate__Strand_RefGenePred_ModelTransc__Value(curStrand, curPred, "average_model_transcript", "number_of_exons_per_transcript-average", exonQtty, totLen)
+                    reader.statisticsUpdate__Strand_RefGenePred_ModelTransc__Value(curStrand, curPred, modelStr, "average_size_of_exons_per_transcript-average", exonSize, totLen)
+                    reader.statisticsUpdate__Strand_RefGenePred_ModelTransc__Value(curStrand, curPred, modelStr, "average_size_of_introns_per_transcript-average", intronSize, totLen)
+                    reader.statisticsUpdate__Strand_RefGenePred_ModelTransc__Value(curStrand, curPred, modelStr, "number_of_exons_per_transcript-average", exonQtty, totLen)
 
 
 def getUnpredictedDf(predictedPairs, baseDf, candidateOrBaselinePairs, isCandidate):
@@ -238,16 +240,14 @@ def findPrediction(reader: Reader, candidateDfHelper: FillDataHelper, baselineDf
 
     return
 
-def addEmptyData(reader: Reader, hasBaseline: bool, dfHelper: FillDataHelper):
-    strand = dfHelper.getStrand()
+def addEmptyData(reader: Reader, baselineDfHelper: FillDataHelper):
+    strand = baselineDfHelper.getStrand()
 
-    if hasBaseline:
-        allBaselineGenes = len(set(dfHelper.getDf()["gene_id"].dropna().unique()))
-        for curStrand in [strand, "general"]:
-            reader.statisticsUpdate__Strand__Value(curStrand, "reference_gene_unpredicted-percentage", allBaselineGenes, allBaselineGenes)
+    allBaselineGenes = len(set(baselineDfHelper.getDf()["gene_id"].dropna().unique()))
+    for curStrand in [strand, "general"]:
+        reader.statisticsUpdate__Strand__Value(curStrand, "reference_gene_unpredicted-percentage", allBaselineGenes, allBaselineGenes)
+        reader.statisticsUpdate__Strand__Value(curStrand, "no_prediction_for_reference_gene_on_same_strand-percentage", 1, 1)
     
-    reader.statisticsUpdate__Strand__Value(strand, "no_prediction_for_reference_gene_on_same_strand-percentage", 1, 1)
-    reader.statisticsUpdate__Strand__Value("general", "no_prediction_for_reference_gene_on_same_strand-percentage", 1, 1)
 
 def fillData(reader: Reader):
     chromosomeFolders = reader.getChromosomeFoldersList()
@@ -266,7 +266,7 @@ def fillData(reader: Reader):
         if hasBothFiles:
             dfPrediction = candidateDfHelper.findCandidateTranscriptItsBaselineTranscript(baselineDfHelper)
             findPrediction(reader, candidateDfHelper, baselineDfHelper, dfPrediction)
-        else:
-            addEmptyData(reader, hasBaseline, (baselineDfHelper if hasBaseline else candidateDfHelper))
+        elif hasBaseline:
+            addEmptyData(reader, baselineDfHelper)
 
     reader.setFinalResults()
