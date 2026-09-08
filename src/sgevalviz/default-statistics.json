@@ -1,0 +1,1224 @@
+{
+    "definitions": {
+        "basic": "The 'reference' is the data that contains the source of truth of the prediction, and the 'candidate' is the prediction that was calculated and we want to compare with the 'reference'. To make the comparison, we divide both the reference and candidate into 'chromosome-strand-group', each chromosome-strand-group contains data from a given chromosome in a given strand.",
+        "forward, reverse, and general": "The data can be divided into data that comes from one of the strands, or both. If the data has no filtered, thus coming from both forward or reverse strand it recieves the 'general' definition, otherwise it recieves 'forward' or 'reverse' accordingly.",
+        "partially-predicted, totally-predicted, and predicted": "A reference gene can be either unpredicted or 'predicted'. It's considered predicted when at least one of its cds nucleotides from any of its transcripts was found in the candidate prediction. The reference transcript of the gene that has the most cds nucleotides in common with the candidate prediction is the one used for the comparisons.On the 'predicted' genes, if the candidate prediction is exactly equal to one of the transcripts of the reference prediction, it's considered 'totally-predicted', otherwise it's considered 'partially-predicted'.",
+        "selected-transcript, average-transcript": "When a gene is predicted, the 'selected-transcript' is the transcript of the reference that has the most cds nucleotides in common with the prediction from the candidate, the 'average-transcript' use the average of all the possible transcripts of that gene for the calculations.",
+        "recall, precision": "Some statistics are calculated using the 'recall' - True Positives/(True Positives + False Negatives) - and precision - True Positives/(True Positives + False Positives). This statistics are made only for the predicted genes. The recall uses the reference predicted transcript against all the others on the reference, and the precision uses the same logic but with the candidate.",
+        "single-exon, multiple-exon, any-quantity-exon": "Analyses for predicted genes can be made taking into account only the ones that have the prediction transcript with a 'single-exon', 'multiple-exon' or both - 'any-quantity-exon'. The predicted gene analyzed is the one from the reference if it's the recall or the baseline if is precision."
+    },
+    "parameters": [
+        {
+            "description": "Percentage of chromosome-strand-groups that have ONLY the predictions from the refence in respect to the ones that contain AT LEAST the predictions from the reference.",
+            "data-type": "percentage",
+            "strand": {
+                "forward": {
+                    "name": "forward__no_prediction_for_reference_gene_on_same_strand-percentage",
+                    "value": 0
+                },
+                "reverse": {
+                    "name": "reverse__no_prediction_for_reference_gene_on_same_strand-percentage",
+                    "value": 0
+                },
+                "general": {
+                    "name": "general__no_prediction_for_reference_gene_on_same_strand-percentage",
+                    "value": 0
+                }
+            }
+        },
+        {
+            "description": "Percentage of genes from the reference in which not a single cds nucleotide from any of its transcripts was found in predictions from the baseline.",
+            "data-type": "percentage",
+            "strand": {
+                "forward": {
+                    "name": "forward__reference_gene_unpredicted-percentage",
+                    "value": 0
+                },
+                "reverse": {
+                    "name": "reverse__reference_gene_unpredicted-percentage",
+                    "value": 0
+                },
+                "general": {
+                    "name": "general__reference_gene_unpredicted-percentage",
+                    "value": 0
+                }
+            }
+        },
+        {
+            "description": "Percentage of partially-predicted genes that have the first cds nucleotide of the the reference prediction and the first cds nucleotide of the candidate prediction on the same frame.",
+            "data-type": "percentage",
+            "strand": {
+                "forward": {
+                    "name": "forward__reference_gene_partially_predicted__selected_model_transcript_on_same_frame_as_selected_reference_transcript-percentage",
+                    "value": 0
+                },
+                "reverse": {
+                    "name": "reverse__reference_gene_partially_predicted__selected_model_transcript_on_same_frame_as_selected_reference_transcript-percentage",
+                    "value": 0
+                },
+                "general": {
+                    "name": "general__reference_gene_partially_predicted__selected_model_transcript_on_same_frame_as_selected_reference_transcript-percentage",
+                    "value": 0
+                }
+            }
+        },
+        {
+            "description": "Average of the ratio of number of exons in the partially-predicted candidate prediction per its reference prediction.",
+            "data-type": "percentage",
+            "strand": {
+                "forward": {
+                    "name": "forward__ratio_of_number_of_exons_in_model_selected_transcript_per_reference_selected_transcript-average",
+                    "value": 0
+                },
+                "reverse": {
+                    "name": "reverse__ratio_of_number_of_exons_in_model_selected_transcript_per_reference_selected_transcript-average",
+                    "value": 0
+                },
+                "general": {
+                    "name": "general__ratio_of_number_of_exons_in_model_selected_transcript_per_reference_selected_transcript-average",
+                    "value": 0
+                }
+            }
+        },
+        {
+            "description": "Average of the ratio of number of cds nucleotides in the partially-predicted candidate prediction per its reference prediction.",
+            "data-type": "percentage",
+            "strand": {
+                "forward": {
+                    "name": "forward__ratio_of_number_of_nucleotides_in_model_selected_transcript_per_reference_selected_transcript-average",
+                    "value": 0
+                },
+                "reverse": {
+                    "name": "reverse__ratio_of_number_of_nucleotides_in_model_selected_transcript_per_reference_selected_transcript-average",
+                    "value": 0
+                },
+                "general": {
+                    "name": "general__ratio_of_number_of_nucleotides_in_model_selected_transcript_per_reference_selected_transcript-average",
+                    "value": 0
+                }
+            }
+        },
+        {
+            "description": "Percentage of predicted genes that have at least one transcript with intron retention in which the predicted transcript of the reference is the the one with the most, or tied with the most, intron retention occurances out of all the possible transcripts for the predicted gene.",
+            "data-type": "percentage",
+            "strand": {
+                "forward": {
+                    "partially-predicted": {
+                        "name": "forward__reference_gene_partially_predicted__has_intron_retention_exon_in_reference__selected_reference_transcript_is_the_transcript_with_most_intron_retention_exons-percentage",
+                        "value": 0
+                    },
+                    "totally-predicted": {
+                        "name": "forward__reference_gene_totally_predicted__has_intron_retention_exon_in_reference__selected_reference_transcript_is_the_transcript_with_most_intron_retention_exons-percentage",
+                        "value": 0
+                    },
+                    "predicted": {
+                        "name": "forward__reference_gene_predicted__has_intron_retention_exon_in_reference__selected_reference_transcript_is_the_transcript_with_most_intron_retention_exons-percentage",
+                        "value": 0
+                    }
+                },
+                "reverse": {
+                    "partially-predicted": {
+                        "name": "reverse__reference_gene_partially_predicted__has_intron_retention_exon_in_reference__selected_reference_transcript_is_the_transcript_with_most_intron_retention_exons-percentage",
+                        "value": 0
+                    },
+                    "totally-predicted": {
+                        "name": "reverse__reference_gene_totally_predicted__has_intron_retention_exon_in_reference__selected_reference_transcript_is_the_transcript_with_most_intron_retention_exons-percentage",
+                        "value": 0
+                    },
+                    "predicted": {
+                        "name": "reverse__reference_gene_predicted__has_intron_retention_exon_in_reference__selected_reference_transcript_is_the_transcript_with_most_intron_retention_exons-percentage",
+                        "value": 0
+                    }
+                },
+                "general": {
+                    "partially-predicted": {
+                        "name": "general__reference_gene_partially_predicted__has_intron_retention_exon_in_reference__selected_reference_transcript_is_the_transcript_with_most_intron_retention_exons-percentage",
+                        "value": 0
+                    },
+                    "totally-predicted": {
+                        "name": "general__reference_gene_totally_predicted__has_intron_retention_exon_in_reference__selected_reference_transcript_is_the_transcript_with_most_intron_retention_exons-percentage",
+                        "value": 0
+                    },
+                    "predicted": {
+                        "name": "general__reference_gene_predicted__has_intron_retention_exon_in_reference__selected_reference_transcript_is_the_transcript_with_most_intron_retention_exons-percentage",
+                        "value": 0
+                    }
+                }
+            }
+        },
+        {
+            "description": "Average size of the exons, in nucleotides, for the predicted genes. In the case of average-transcript is the average size of the exons is the average of the transcripts average size of the exons.",
+            "data-type": "number",
+            "strand": {
+                "forward": {
+                    "partially-predicted": {
+                        "selected-transcript": {
+                            "name": "forward__reference_gene_partially_predicted__selected_model_transcript__average_size_of_exons_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "forward__reference_gene_partially_predicted__average_model_transcript__average_size_of_exons_per_transcript-average",
+                            "value": 0
+                        }
+                    },
+                    "totally-predicted": {
+                        "selected-transcript": {
+                            "name": "forward__reference_gene_totally_predicted__selected_model_transcript__average_size_of_exons_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "forward__reference_gene_totally_predicted__average_model_transcript__average_size_of_exons_per_transcript-average",
+                            "value": 0
+                        }
+                    },
+                    "predicted": {
+                        "selected-transcript": {
+                            "name": "forward__reference_gene_predicted__selected_model_transcript__average_size_of_exons_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "forward__reference_gene_predicted__average_model_transcript__average_size_of_exons_per_transcript-average",
+                            "value": 0
+                        }
+                    }
+                },
+                "reverse": {
+                    "partially-predicted": {
+                        "selected-transcript": {
+                            "name": "reverse__reference_gene_partially_predicted__selected_model_transcript__average_size_of_exons_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "reverse__reference_gene_partially_predicted__average_model_transcript__average_size_of_exons_per_transcript-average",
+                            "value": 0
+                        }
+                    },
+                    "totally-predicted": {
+                        "selected-transcript": {
+                            "name": "reverse__reference_gene_totally_predicted__selected_model_transcript__average_size_of_exons_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "reverse__reference_gene_totally_predicted__average_model_transcript__average_size_of_exons_per_transcript-average",
+                            "value": 0
+                        }
+                    },
+                    "predicted": {
+                        "selected-transcript": {
+                            "name": "reverse__reference_gene_predicted__selected_model_transcript__average_size_of_exons_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "reverse__reference_gene_predicted__average_model_transcript__average_size_of_exons_per_transcript-average",
+                            "value": 0
+                        }
+                    }
+                },
+                "general": {
+                    "partially-predicted": {
+                        "selected-transcript": {
+                            "name": "general__reference_gene_partially_predicted__selected_model_transcript__average_size_of_exons_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "general__reference_gene_partially_predicted__average_model_transcript__average_size_of_exons_per_transcript-average",
+                            "value": 0
+                        }
+                    },
+                    "totally-predicted": {
+                        "selected-transcript": {
+                            "name": "general__reference_gene_totally_predicted__selected_model_transcript__average_size_of_exons_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "general__reference_gene_totally_predicted__average_model_transcript__average_size_of_exons_per_transcript-average",
+                            "value": 0
+                        }
+                    },
+                    "predicted": {
+                        "selected-transcript": {
+                            "name": "general__reference_gene_predicted__selected_model_transcript__average_size_of_exons_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "general__reference_gene_predicted__average_model_transcript__average_size_of_exons_per_transcript-average",
+                            "value": 0
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "description": "Average size of the introns, in nucleotides, for the predicted genes. In the case of average-transcript is the average size of the introns is the average of the transcripts average size of the introns.",
+            "data-type": "number",
+            "strand": {
+                "forward": {
+                    "partially-predicted": {
+                        "selected-transcript": {
+                            "name": "forward__reference_gene_partially_predicted__selected_model_transcript__average_size_of_introns_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "forward__reference_gene_partially_predicted__average_model_transcript__average_size_of_introns_per_transcript-average",
+                            "value": 0
+                        }
+                    },
+                    "totally-predicted": {
+                        "selected-transcript": {
+                            "name": "forward__reference_gene_totally_predicted__selected_model_transcript__average_size_of_introns_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "forward__reference_gene_totally_predicted__average_model_transcript__average_size_of_introns_per_transcript-average",
+                            "value": 0
+                        }
+                    },
+                    "predicted": {
+                        "selected-transcript": {
+                            "name": "forward__reference_gene_predicted__selected_model_transcript__average_size_of_introns_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "forward__reference_gene_predicted__average_model_transcript__average_size_of_introns_per_transcript-average",
+                            "value": 0
+                        }
+                    }
+                },
+                "reverse": {
+                    "partially-predicted": {
+                        "selected-transcript": {
+                            "name": "reverse__reference_gene_partially_predicted__selected_model_transcript__average_size_of_introns_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "reverse__reference_gene_partially_predicted__average_model_transcript__average_size_of_introns_per_transcript-average",
+                            "value": 0
+                        }
+                    },
+                    "totally-predicted": {
+                        "selected-transcript": {
+                            "name": "reverse__reference_gene_totally_predicted__selected_model_transcript__average_size_of_introns_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "reverse__reference_gene_totally_predicted__average_model_transcript__average_size_of_introns_per_transcript-average",
+                            "value": 0
+                        }
+                    },
+                    "predicted": {
+                        "selected-transcript": {
+                            "name": "reverse__reference_gene_predicted__selected_model_transcript__average_size_of_introns_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "reverse__reference_gene_predicted__average_model_transcript__average_size_of_introns_per_transcript-average",
+                            "value": 0
+                        }
+                    }
+                },
+                "general": {
+                    "partially-predicted": {
+                        "selected-transcript": {
+                            "name": "general__reference_gene_partially_predicted__selected_model_transcript__average_size_of_introns_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "general__reference_gene_partially_predicted__average_model_transcript__average_size_of_introns_per_transcript-average",
+                            "value": 0
+                        }
+                    },
+                    "totally-predicted": {
+                        "selected-transcript": {
+                            "name": "general__reference_gene_totally_predicted__selected_model_transcript__average_size_of_introns_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "general__reference_gene_totally_predicted__average_model_transcript__average_size_of_introns_per_transcript-average",
+                            "value": 0
+                        }
+                    },
+                    "predicted": {
+                        "selected-transcript": {
+                            "name": "general__reference_gene_predicted__selected_model_transcript__average_size_of_introns_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "general__reference_gene_predicted__average_model_transcript__average_size_of_introns_per_transcript-average",
+                            "value": 0
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "description": "Average number of exons for the predicted genes. In the case of average-transcript is the average number of exons is the average of the transcripts average number of exons.",
+            "data-type": "number",
+            "strand": {
+                "forward": {
+                    "partially-predicted": {
+                        "selected-transcript": {
+                            "name": "forward__reference_gene_partially_predicted__selected_model_transcript__number_of_exons_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "forward__reference_gene_partially_predicted__average_model_transcript__number_of_exons_per_transcript-average",
+                            "value": 0
+                        }
+                    },
+                    "totally-predicted": {
+                        "selected-transcript": {
+                            "name": "forward__reference_gene_totally_predicted__selected_model_transcript__number_of_exons_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "forward__reference_gene_totally_predicted__average_model_transcript__number_of_exons_per_transcript-average",
+                            "value": 0
+                        }
+                    },
+                    "predicted": {
+                        "selected-transcript": {
+                            "name": "forward__reference_gene_predicted__selected_model_transcript__number_of_exons_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "forward__reference_gene_predicted__average_model_transcript__number_of_exons_per_transcript-average",
+                            "value": 0
+                        }
+                    }
+                },
+                "reverse": {
+                    "partially-predicted": {
+                        "selected-transcript": {
+                            "name": "reverse__reference_gene_partially_predicted__selected_model_transcript__number_of_exons_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "reverse__reference_gene_partially_predicted__average_model_transcript__number_of_exons_per_transcript-average",
+                            "value": 0
+                        }
+                    },
+                    "totally-predicted": {
+                        "selected-transcript": {
+                            "name": "reverse__reference_gene_totally_predicted__selected_model_transcript__number_of_exons_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "reverse__reference_gene_totally_predicted__average_model_transcript__number_of_exons_per_transcript-average",
+                            "value": 0
+                        }
+                    },
+                    "predicted": {
+                        "selected-transcript": {
+                            "name": "reverse__reference_gene_predicted__selected_model_transcript__number_of_exons_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "reverse__reference_gene_predicted__average_model_transcript__number_of_exons_per_transcript-average",
+                            "value": 0
+                        }
+                    }
+                },
+                "general": {
+                    "partially-predicted": {
+                        "selected-transcript": {
+                            "name": "general__reference_gene_partially_predicted__selected_model_transcript__number_of_exons_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "general__reference_gene_partially_predicted__average_model_transcript__number_of_exons_per_transcript-average",
+                            "value": 0
+                        }
+                    },
+                    "totally-predicted": {
+                        "selected-transcript": {
+                            "name": "general__reference_gene_totally_predicted__selected_model_transcript__number_of_exons_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "general__reference_gene_totally_predicted__average_model_transcript__number_of_exons_per_transcript-average",
+                            "value": 0
+                        }
+                    },
+                    "predicted": {
+                        "selected-transcript": {
+                            "name": "general__reference_gene_predicted__selected_model_transcript__number_of_exons_per_transcript-average",
+                            "value": 0
+                        },
+                        "average-transcript": {
+                            "name": "general__reference_gene_predicted__average_model_transcript__number_of_exons_per_transcript-average",
+                            "value": 0
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "description": "Percentage of predicted transcripts that are single exons. The reference transcripts are analyzed in the case of recall and the candidate ones in the case of precision.",
+            "data-type": "percentage",
+            "strand": {
+                "forward": {
+                    "recall": {
+                        "name": "forward__gene_predicted_recall__single_exon_occurance-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "forward__gene_predicted_precision__single_exon_occurance-percentage",
+                        "value": 0
+                    }
+                },
+                "reverse": {
+                    "recall": {
+                        "name": "reverse__gene_predicted_recall__single_exon_occurance-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "reverse__gene_predicted_precision__single_exon_occurance-percentage",
+                        "value": 0
+                    }
+                },
+                "general": {
+                    "recall": {
+                        "name": "general__gene_predicted_recall__single_exon_occurance-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "general__gene_predicted_precision__single_exon_occurance-percentage",
+                        "value": 0
+                    }
+                }
+            }
+        },
+        {
+            "description": "Percentage of totally predicted genes in predicted genes.",
+            "data-type": "percentage",
+            "strand": {
+                "forward": {
+                    "recall": {
+                        "single-exon": {
+                            "name": "forward__gene_predicted_recall__single_exon_selected_model_transcript__totally_predicted_genes_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "forward__gene_predicted_recall__multiple_exon_selected_model_transcript__totally_predicted_genes_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "forward__gene_predicted_recall__any_quantity_exon_selected_model_transcript__totally_predicted_genes_prediction-percentage",
+                            "value": 0
+                        }
+                    },
+                    "precision": {
+                        "single-exon": {
+                            "name": "forward__gene_predicted_precision__single_exon_selected_model_transcript__totally_predicted_genes_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "forward__gene_predicted_precision__multiple_exon_selected_model_transcript__totally_predicted_genes_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "forward__gene_predicted_precision__any_quantity_exon_selected_model_transcript__totally_predicted_genes_prediction-percentage",
+                            "value": 0
+                        }
+                    }
+                },
+                "reverse": {
+                    "recall": {
+                        "single-exon": {
+                            "name": "reverse__gene_predicted_recall__single_exon_selected_model_transcript__totally_predicted_genes_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "reverse__gene_predicted_recall__multiple_exon_selected_model_transcript__totally_predicted_genes_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "reverse__gene_predicted_recall__any_quantity_exon_selected_model_transcript__totally_predicted_genes_prediction-percentage",
+                            "value": 0
+                        }
+                    },
+                    "precision": {
+                        "single-exon": {
+                            "name": "reverse__gene_predicted_precision__single_exon_selected_model_transcript__totally_predicted_genes_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "reverse__gene_predicted_precision__multiple_exon_selected_model_transcript__totally_predicted_genes_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "reverse__gene_predicted_precision__any_quantity_exon_selected_model_transcript__totally_predicted_genes_prediction-percentage",
+                            "value": 0
+                        }
+                    }
+                },
+                "general": {
+                    "recall": {
+                        "single-exon": {
+                            "name": "precision__gene_predicted_recall__single_exon_selected_model_transcript__totally_predicted_genes_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "precision__gene_predicted_recall__multiple_exon_selected_model_transcript__totally_predicted_genes_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "precision__gene_predicted_recall__any_quantity_exon_selected_model_transcript__totally_predicted_genes_prediction-percentage",
+                            "value": 0
+                        }
+                    },
+                    "precision": {
+                        "single-exon": {
+                            "name": "precision__gene_predicted_precision__single_exon_selected_model_transcript__totally_predicted_genes_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "precision__gene_predicted_precision__multiple_exon_selected_model_transcript__totally_predicted_genes_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "precision__gene_predicted_precision__any_quantity_exon_selected_model_transcript__totally_predicted_genes_prediction-percentage",
+                            "value": 0
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "description": "Percentage of nucleotides predicted in predicted genes.",
+            "data-type": "percentage",
+            "strand": {
+                "forward": {
+                    "recall": {
+                        "single-exon": {
+                            "name": "forward__gene_predicted_recall__single_exon_selected_model_transcript__nucleotide_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "forward__gene_predicted_recall__multiple_exon_selected_model_transcript__nucleotide_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "forward__gene_predicted_recall__any_quantity_exon_selected_model_transcript__nucleotide_prediction-percentage",
+                            "value": 0
+                        }
+                    },
+                    "precision": {
+                        "single-exon": {
+                            "name": "forward__gene_predicted_precision__single_exon_selected_model_transcript__nucleotide_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "forward__gene_predicted_precision__multiple_exon_selected_model_transcript__nucleotide_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "forward__gene_predicted_precision__any_quantity_exon_selected_model_transcript__nucleotide_prediction-percentage",
+                            "value": 0
+                        }
+                    }
+                },
+                "reverse": {
+                    "recall": {
+                        "single-exon": {
+                            "name": "reverse__gene_predicted_recall__single_exon_selected_model_transcript__nucleotide_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "reverse__gene_predicted_recall__multiple_exon_selected_model_transcript__nucleotide_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "reverse__gene_predicted_recall__any_quantity_exon_selected_model_transcript__nucleotide_prediction-percentage",
+                            "value": 0
+                        }
+                    },
+                    "precision": {
+                        "single-exon": {
+                            "name": "reverse__gene_predicted_precision__single_exon_selected_model_transcript__nucleotide_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "reverse__gene_predicted_precision__multiple_exon_selected_model_transcript__nucleotide_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "reverse__gene_predicted_precision__any_quantity_exon_selected_model_transcript__nucleotide_prediction-percentage",
+                            "value": 0
+                        }
+                    }
+                },
+                "general": {
+                    "recall": {
+                        "single-exon": {
+                            "name": "precision__gene_predicted_recall__single_exon_selected_model_transcript__nucleotide_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "precision__gene_predicted_recall__multiple_exon_selected_model_transcript__nucleotide_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "precision__gene_predicted_recall__any_quantity_exon_selected_model_transcript__nucleotide_prediction-percentage",
+                            "value": 0
+                        }
+                    },
+                    "precision": {
+                        "single-exon": {
+                            "name": "precision__gene_predicted_precision__single_exon_selected_model_transcript__nucleotide_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "precision__gene_predicted_precision__multiple_exon_selected_model_transcript__nucleotide_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "precision__gene_predicted_precision__any_quantity_exon_selected_model_transcript__nucleotide_prediction-percentage",
+                            "value": 0
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "description": "Percentage of start codons predicted in predicted genes.",
+            "data-type": "percentage",
+            "strand": {
+                "forward": {
+                    "recall": {
+                        "single-exon": {
+                            "name": "forward__gene_predicted_recall__single_exon_selected_model_transcript__start_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "forward__gene_predicted_recall__multiple_exon_selected_model_transcript__start_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "forward__gene_predicted_recall__any_quantity_exon_selected_model_transcript__start_codon_prediction-percentage",
+                            "value": 0
+                        }
+                    },
+                    "precision": {
+                        "single-exon": {
+                            "name": "forward__gene_predicted_precision__single_exon_selected_model_transcript__start_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "forward__gene_predicted_precision__multiple_exon_selected_model_transcript__start_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "forward__gene_predicted_precision__any_quantity_exon_selected_model_transcript__start_codon_prediction-percentage",
+                            "value": 0
+                        }
+                    }
+                },
+                "reverse": {
+                    "recall": {
+                        "single-exon": {
+                            "name": "reverse__gene_predicted_recall__single_exon_selected_model_transcript__start_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "reverse__gene_predicted_recall__multiple_exon_selected_model_transcript__start_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "reverse__gene_predicted_recall__any_quantity_exon_selected_model_transcript__start_codon_prediction-percentage",
+                            "value": 0
+                        }
+                    },
+                    "precision": {
+                        "single-exon": {
+                            "name": "reverse__gene_predicted_precision__single_exon_selected_model_transcript__start_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "reverse__gene_predicted_precision__multiple_exon_selected_model_transcript__start_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "reverse__gene_predicted_precision__any_quantity_exon_selected_model_transcript__start_codon_prediction-percentage",
+                            "value": 0
+                        }
+                    }
+                },
+                "general": {
+                    "recall": {
+                        "single-exon": {
+                            "name": "precision__gene_predicted_recall__single_exon_selected_model_transcript__start_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "precision__gene_predicted_recall__multiple_exon_selected_model_transcript__start_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "precision__gene_predicted_recall__any_quantity_exon_selected_model_transcript__start_codon_prediction-percentage",
+                            "value": 0
+                        }
+                    },
+                    "precision": {
+                        "single-exon": {
+                            "name": "precision__gene_predicted_precision__single_exon_selected_model_transcript__start_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "precision__gene_predicted_precision__multiple_exon_selected_model_transcript__start_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "precision__gene_predicted_precision__any_quantity_exon_selected_model_transcript__start_codon_prediction-percentage",
+                            "value": 0
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "description": "Percentage of stop codons predicted in predicted genes.",
+            "data-type": "percentage",
+            "strand": {
+                "forward": {
+                    "recall": {
+                        "single-exon": {
+                            "name": "forward__gene_predicted_recall__single_exon_selected_model_transcript__stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "forward__gene_predicted_recall__multiple_exon_selected_model_transcript__stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "forward__gene_predicted_recall__any_quantity_exon_selected_model_transcript__stop_codon_prediction-percentage",
+                            "value": 0
+                        }
+                    },
+                    "precision": {
+                        "single-exon": {
+                            "name": "forward__gene_predicted_precision__single_exon_selected_model_transcript__stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "forward__gene_predicted_precision__multiple_exon_selected_model_transcript__stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "forward__gene_predicted_precision__any_quantity_exon_selected_model_transcript__stop_codon_prediction-percentage",
+                            "value": 0
+                        }
+                    }
+                },
+                "reverse": {
+                    "recall": {
+                        "single-exon": {
+                            "name": "reverse__gene_predicted_recall__single_exon_selected_model_transcript__stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "reverse__gene_predicted_recall__multiple_exon_selected_model_transcript__stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "reverse__gene_predicted_recall__any_quantity_exon_selected_model_transcript__stop_codon_prediction-percentage",
+                            "value": 0
+                        }
+                    },
+                    "precision": {
+                        "single-exon": {
+                            "name": "reverse__gene_predicted_precision__single_exon_selected_model_transcript__stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "reverse__gene_predicted_precision__multiple_exon_selected_model_transcript__stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "reverse__gene_predicted_precision__any_quantity_exon_selected_model_transcript__stop_codon_prediction-percentage",
+                            "value": 0
+                        }
+                    }
+                },
+                "general": {
+                    "recall": {
+                        "single-exon": {
+                            "name": "precision__gene_predicted_recall__single_exon_selected_model_transcript__stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "precision__gene_predicted_recall__multiple_exon_selected_model_transcript__stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "precision__gene_predicted_recall__any_quantity_exon_selected_model_transcript__stop_codon_prediction-percentage",
+                            "value": 0
+                        }
+                    },
+                    "precision": {
+                        "single-exon": {
+                            "name": "precision__gene_predicted_precision__single_exon_selected_model_transcript__stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "precision__gene_predicted_precision__multiple_exon_selected_model_transcript__stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "precision__gene_predicted_precision__any_quantity_exon_selected_model_transcript__stop_codon_prediction-percentage",
+                            "value": 0
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "description": "Percentage of, at the same time, start codons predicted and stop codons predicted in predicted genes.",
+            "data-type": "percentage",
+            "strand": {
+                "forward": {
+                    "recall": {
+                        "single-exon": {
+                            "name": "forward__gene_predicted_recall__single_exon_selected_model_transcript__same_time_start_codon_and_stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "forward__gene_predicted_recall__multiple_exon_selected_model_transcript__same_time_start_codon_and_stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "forward__gene_predicted_recall__any_quantity_exon_selected_model_transcript__same_time_start_codon_and_stop_codon_prediction-percentage",
+                            "value": 0
+                        }
+                    },
+                    "precision": {
+                        "single-exon": {
+                            "name": "forward__gene_predicted_precision__single_exon_selected_model_transcript__same_time_start_codon_and_stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "forward__gene_predicted_precision__multiple_exon_selected_model_transcript__same_time_start_codon_and_stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "forward__gene_predicted_precision__any_quantity_exon_selected_model_transcript__same_time_start_codon_and_stop_codon_prediction-percentage",
+                            "value": 0
+                        }
+                    }
+                },
+                "reverse": {
+                    "recall": {
+                        "single-exon": {
+                            "name": "reverse__gene_predicted_recall__single_exon_selected_model_transcript__same_time_start_codon_and_stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "reverse__gene_predicted_recall__multiple_exon_selected_model_transcript__same_time_start_codon_and_stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "reverse__gene_predicted_recall__any_quantity_exon_selected_model_transcript__same_time_start_codon_and_stop_codon_prediction-percentage",
+                            "value": 0
+                        }
+                    },
+                    "precision": {
+                        "single-exon": {
+                            "name": "reverse__gene_predicted_precision__single_exon_selected_model_transcript__same_time_start_codon_and_stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "reverse__gene_predicted_precision__multiple_exon_selected_model_transcript__same_time_start_codon_and_stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "reverse__gene_predicted_precision__any_quantity_exon_selected_model_transcript__same_time_start_codon_and_stop_codon_prediction-percentage",
+                            "value": 0
+                        }
+                    }
+                },
+                "general": {
+                    "recall": {
+                        "single-exon": {
+                            "name": "precision__gene_predicted_recall__single_exon_selected_model_transcript__same_time_start_codon_and_stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "precision__gene_predicted_recall__multiple_exon_selected_model_transcript__same_time_start_codon_and_stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "precision__gene_predicted_recall__any_quantity_exon_selected_model_transcript__same_time_start_codon_and_stop_codon_prediction-percentage",
+                            "value": 0
+                        }
+                    },
+                    "precision": {
+                        "single-exon": {
+                            "name": "precision__gene_predicted_precision__single_exon_selected_model_transcript__same_time_start_codon_and_stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "multiple-exon": {
+                            "name": "precision__gene_predicted_precision__multiple_exon_selected_model_transcript__same_time_start_codon_and_stop_codon_prediction-percentage",
+                            "value": 0
+                        },
+                        "any-quantity-exon": {
+                            "name": "precision__gene_predicted_precision__any_quantity_exon_selected_model_transcript__same_time_start_codon_and_stop_codon_prediction-percentage",
+                            "value": 0
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "description": "Percentage of introns predicted in predicted genes. Only calculated for multiple-exon genes.",
+            "data-type": "percentage",
+            "strand": {
+                "forward": {
+                    "recall": {
+                        "name": "forward__gene_predicted_recall__multiple_exon_selected_model_transcript__average_intron_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "forward__gene_predicted_precision__multiple_exon_selected_model_transcript__average_intron_prediction-percentage",
+                        "value": 0
+                    }
+                },
+                "reverse": {
+                    "recall": {
+                        "name": "reverse__gene_predicted_recall__multiple_exon_selected_model_transcript__average_intron_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "reverse__gene_predicted_precision__multiple_exon_selected_model_transcript__average_intron_prediction-percentage",
+                        "value": 0
+                    }
+                },
+                "general": {
+                    "recall": {
+                        "name": "general__gene_predicted_recall__multiple_exon_selected_model_transcript__average_intron_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "general__gene_predicted_precision__multiple_exon_selected_model_transcript__average_intron_prediction-percentage",
+                        "value": 0
+                    }
+                }
+            }
+        },
+        {
+            "description": "Percentage of exons predicted in predicted genes. Only calculated for multiple-exon genes.",
+            "data-type": "percentage",
+            "strand": {
+                "forward": {
+                    "recall": {
+                        "name": "forward__gene_predicted_recall__multiple_exon_selected_model_transcript__average_exon_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "forward__gene_predicted_precision__multiple_exon_selected_model_transcript__average_exon_prediction-percentage",
+                        "value": 0
+                    }
+                },
+                "reverse": {
+                    "recall": {
+                        "name": "reverse__gene_predicted_recall__multiple_exon_selected_model_transcript__average_exon_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "reverse__gene_predicted_precision__multiple_exon_selected_model_transcript__average_exon_prediction-percentage",
+                        "value": 0
+                    }
+                },
+                "general": {
+                    "recall": {
+                        "name": "general__gene_predicted_recall__multiple_exon_selected_model_transcript__average_exon_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "general__gene_predicted_precision__multiple_exon_selected_model_transcript__average_exon_prediction-percentage",
+                        "value": 0
+                    }
+                }
+            }
+        },
+        {
+            "description": "Percentage of first exons predicted in predicted genes. Only calculated for multiple-exon genes.",
+            "data-type": "percentage",
+            "strand": {
+                "forward": {
+                    "recall": {
+                        "name": "forward__gene_predicted_recall__multiple_exon_selected_model_transcript__first_exon_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "forward__gene_predicted_precision__multiple_exon_selected_model_transcript__first_exon_prediction-percentage",
+                        "value": 0
+                    }
+                },
+                "reverse": {
+                    "recall": {
+                        "name": "reverse__gene_predicted_recall__multiple_exon_selected_model_transcript__first_exon_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "reverse__gene_predicted_precision__multiple_exon_selected_model_transcript__first_exon_prediction-percentage",
+                        "value": 0
+                    }
+                },
+                "general": {
+                    "recall": {
+                        "name": "general__gene_predicted_recall__multiple_exon_selected_model_transcript__first_exon_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "general__gene_predicted_precision__multiple_exon_selected_model_transcript__first_exon_prediction-percentage",
+                        "value": 0
+                    }
+                }
+            }
+        },
+        {
+            "description": "Percentage of last exons predicted in predicted genes. Only calculated for multiple-exon genes.",
+            "data-type": "percentage",
+            "strand": {
+                "forward": {
+                    "recall": {
+                        "name": "forward__gene_predicted_recall__multiple_exon_selected_model_transcript__last_exon_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "forward__gene_predicted_precision__multiple_exon_selected_model_transcript__last_exon_prediction-percentage",
+                        "value": 0
+                    }
+                },
+                "reverse": {
+                    "recall": {
+                        "name": "reverse__gene_predicted_recall__multiple_exon_selected_model_transcript__last_exon_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "reverse__gene_predicted_precision__multiple_exon_selected_model_transcript__last_exon_prediction-percentage",
+                        "value": 0
+                    }
+                },
+                "general": {
+                    "recall": {
+                        "name": "general__gene_predicted_recall__multiple_exon_selected_model_transcript__last_exon_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "general__gene_predicted_precision__multiple_exon_selected_model_transcript__last_exon_prediction-percentage",
+                        "value": 0
+                    }
+                }
+            }
+        },
+        {
+            "description": "Percentage of, at the same time, first exons predicted and last exons predicted in predicted genes. Only calculated for multiple-exon genes.",
+            "data-type": "percentage",
+            "strand": {
+                "forward": {
+                    "recall": {
+                        "name": "forward__gene_predicted_recall__multiple_exon_selected_model_transcript__same_time_first_exon_and_last_exon_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "forward__gene_predicted_precision__multiple_exon_selected_model_transcript__same_time_first_exon_and_last_exon_prediction-percentage",
+                        "value": 0
+                    }
+                },
+                "reverse": {
+                    "recall": {
+                        "name": "reverse__gene_predicted_recall__multiple_exon_selected_model_transcript__same_time_first_exon_and_last_exon_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "reverse__gene_predicted_precision__multiple_exon_selected_model_transcript__same_time_first_exon_and_last_exon_prediction-percentage",
+                        "value": 0
+                    }
+                },
+                "general": {
+                    "recall": {
+                        "name": "general__gene_predicted_recall__multiple_exon_selected_model_transcript__same_time_first_exon_and_last_exon_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "general__gene_predicted_precision__multiple_exon_selected_model_transcript__same_time_first_exon_and_last_exon_prediction-percentage",
+                        "value": 0
+                    }
+                }
+            }
+        },
+        {
+            "description": "Percentage of donnors predicted in predicted genes. Only calculated for multiple-exon genes.",
+            "data-type": "percentage",
+            "strand": {
+                "forward": {
+                    "recall": {
+                        "name": "forward__gene_predicted_recall__multiple_exon_selected_model_transcript__average_donnor_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "forward__gene_predicted_precision__multiple_exon_selected_model_transcript__average_donnor_prediction-percentage",
+                        "value": 0
+                    }
+                },
+                "reverse": {
+                    "recall": {
+                        "name": "reverse__gene_predicted_recall__multiple_exon_selected_model_transcript__average_donnor_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "reverse__gene_predicted_precision__multiple_exon_selected_model_transcript__average_donnor_prediction-percentage",
+                        "value": 0
+                    }
+                },
+                "general": {
+                    "recall": {
+                        "name": "general__gene_predicted_recall__multiple_exon_selected_model_transcript__average_donnor_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "general__gene_predicted_precision__multiple_exon_selected_model_transcript__average_donnor_prediction-percentage",
+                        "value": 0
+                    }
+                }
+            }
+        },
+        {
+            "description": "Percentage of acceptors predicted in predicted genes. Only calculated for multiple-exon genes.",
+            "data-type": "percentage",
+            "strand": {
+                "forward": {
+                    "recall": {
+                        "name": "forward__gene_predicted_recall__multiple_exon_selected_model_transcript__average_acceptor_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "forward__gene_predicted_precision__multiple_exon_selected_model_transcript__average_acceptor_prediction-percentage",
+                        "value": 0
+                    }
+                },
+                "reverse": {
+                    "recall": {
+                        "name": "reverse__gene_predicted_recall__multiple_exon_selected_model_transcript__average_acceptor_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "reverse__gene_predicted_precision__multiple_exon_selected_model_transcript__average_acceptor_prediction-percentage",
+                        "value": 0
+                    }
+                },
+                "general": {
+                    "recall": {
+                        "name": "general__gene_predicted_recall__multiple_exon_selected_model_transcript__average_acceptor_prediction-percentage",
+                        "value": 0
+                    },
+                    "precision": {
+                        "name": "general__gene_predicted_precision__multiple_exon_selected_model_transcript__average_acceptor_prediction-percentage",
+                        "value": 0
+                    }
+                }
+            }
+        }
+    ]
+}

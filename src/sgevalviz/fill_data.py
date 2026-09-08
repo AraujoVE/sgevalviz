@@ -78,10 +78,15 @@ def divideByTotallyAndPartiallyPredicted(strand, reader: Reader, predictedDf, ba
                     reader.statisticsUpdate__Strand_RefGenePred_ModelTransc__Value(curStrand, curPred, modelStr, "number_of_exons_per_transcript-average", exonQtty, totLen)
 
 
-def getUnpredictedDf(predictedPairs, baseDf, candidateOrBaselinePairs, isCandidate):
+def getUnpredictedDf(baseDf, unpredictedGeneId, isCandidate):
+    if len(unpredictedGeneId) == 0:
+        return None
+
     baseName = "candidate" if isCandidate else "baseline"
 
-    unpredictedDf = baseDf[[pair not in predictedPairs for pair in candidateOrBaselinePairs]].copy()
+    unpredictedDf = baseDf[baseDf[f"{baseName}_gene_id"].isin(unpredictedGeneId)].copy()
+    unpredictedDf = unpredictedDf.sort_values(by=f"{baseName}_number_of_cds_nucleotides").drop_duplicates(subset=[f"{baseName}_gene_id"], keep="first")
+
     unpredictedDf["nucleotides_predicted"] = 0
     unpredictedDf["predicted"] = False
     unpredictedDf["totally_predicted"] = False
@@ -118,13 +123,13 @@ def getPredictedDf(dfPrediction, unpredictedDf, isCandidate):
         "donnors_predicted", "acceptors_predicted"
     ]].copy()
 
-    concatenatedDf = pd.concat([predictedData, unpredictedDf], ignore_index=True)
+    concatenatedDf = predictedData if unpredictedDf is None else pd.concat([predictedData, unpredictedDf], ignore_index=True)
 
     concatenatedDf = concatenatedDf.sort_values(
         by="nucleotides_predicted",
         ascending=False
     ).drop_duplicates(
-        subset=[f"{baseName}_gene_id", f"{baseName}_transcript_id"], 
+        subset=[f"{baseName}_gene_id"], 
         keep="first"
     )
 
@@ -170,14 +175,13 @@ def onlyMultiExonStatistics(df, reader: Reader, starterText, strand, recOrPre):
     acceptorsPredicted = df["acceptors_predicted"].sum()
 
     for curStrand in [strand, "general"]:
-        for multipleOrAny in ["multiple_exon_selected_model_transcript", "any_quantity_exon_selected_model_transcript"]:
-            reader.statisticsUpdate__Strand_RefGenePredRecallPrecision_ExonNumberPerTranscript__Value(curStrand, recOrPre, multipleOrAny,"average_intron_prediction-percentage", intronsPredicted, numberOfIntrons)
-            reader.statisticsUpdate__Strand_RefGenePredRecallPrecision_ExonNumberPerTranscript__Value(curStrand, recOrPre, multipleOrAny,"average_exon_prediction-percentage", exonsPredicted, numberOfExons)
-            reader.statisticsUpdate__Strand_RefGenePredRecallPrecision_ExonNumberPerTranscript__Value(curStrand, recOrPre, multipleOrAny,"first_exon_prediction-percentage", firstExonsPredicted, numberOfRows)
-            reader.statisticsUpdate__Strand_RefGenePredRecallPrecision_ExonNumberPerTranscript__Value(curStrand, recOrPre, multipleOrAny,"last_exon_prediction-percentage", lastExonsPredicted, numberOfRows)
-            reader.statisticsUpdate__Strand_RefGenePredRecallPrecision_ExonNumberPerTranscript__Value(curStrand, recOrPre, multipleOrAny,"same_time_first_exon_and_last_exon_prediction-percentage", firstAndLastExonsPredicted, numberOfRows)
-            reader.statisticsUpdate__Strand_RefGenePredRecallPrecision_ExonNumberPerTranscript__Value(curStrand, recOrPre, multipleOrAny,"average_donnor_prediction-percentage", donnorsPredicted, numberOfIntrons)
-            reader.statisticsUpdate__Strand_RefGenePredRecallPrecision_ExonNumberPerTranscript__Value(curStrand, recOrPre, multipleOrAny,"average_acceptor_prediction-percentage", acceptorsPredicted, numberOfIntrons)
+        reader.statisticsUpdate__Strand_RefGenePredRecallPrecision_ExonNumberPerTranscript__Value(curStrand, recOrPre, "multiple_exon_selected_model_transcript", "average_intron_prediction-percentage", intronsPredicted, numberOfIntrons)
+        reader.statisticsUpdate__Strand_RefGenePredRecallPrecision_ExonNumberPerTranscript__Value(curStrand, recOrPre, "multiple_exon_selected_model_transcript", "average_exon_prediction-percentage", exonsPredicted, numberOfExons)
+        reader.statisticsUpdate__Strand_RefGenePredRecallPrecision_ExonNumberPerTranscript__Value(curStrand, recOrPre, "multiple_exon_selected_model_transcript", "first_exon_prediction-percentage", firstExonsPredicted, numberOfRows)
+        reader.statisticsUpdate__Strand_RefGenePredRecallPrecision_ExonNumberPerTranscript__Value(curStrand, recOrPre, "multiple_exon_selected_model_transcript", "last_exon_prediction-percentage", lastExonsPredicted, numberOfRows)
+        reader.statisticsUpdate__Strand_RefGenePredRecallPrecision_ExonNumberPerTranscript__Value(curStrand, recOrPre, "multiple_exon_selected_model_transcript", "same_time_first_exon_and_last_exon_prediction-percentage", firstAndLastExonsPredicted, numberOfRows)
+        reader.statisticsUpdate__Strand_RefGenePredRecallPrecision_ExonNumberPerTranscript__Value(curStrand, recOrPre, "multiple_exon_selected_model_transcript", "average_donnor_prediction-percentage", donnorsPredicted, numberOfIntrons)
+        reader.statisticsUpdate__Strand_RefGenePredRecallPrecision_ExonNumberPerTranscript__Value(curStrand, recOrPre, "multiple_exon_selected_model_transcript", "average_acceptor_prediction-percentage", acceptorsPredicted, numberOfIntrons)
 
 
 
@@ -201,19 +205,22 @@ def recallOrPrecision(df, reader: Reader, strand, recOrPre):
     return
 
 def recallAndPrecision(strand, reader: Reader, candidateDfHelper: FillDataHelper, baselineDfHelper: FillDataHelper, dfPrediction):
-    predictedPairsCandidate = set(zip(dfPrediction["candidate_gene_id"], dfPrediction["candidate_transcript_id"]))
-    predictedPairsBaseline = set(zip(dfPrediction["baseline_gene_id"], dfPrediction["baseline_transcript_id"]))
-
     uniqueCandidate = candidateDfHelper.getDfTranscript()
-    candidatePairs = list(zip(uniqueCandidate["candidate_gene_id"], uniqueCandidate["candidate_transcript_id"]))
-
     uniqueBaseline = baselineDfHelper.getDfTranscript()
-    baselinePairs = list(zip(uniqueBaseline["baseline_gene_id"], uniqueBaseline["baseline_transcript_id"]))
 
-    unpredictedCandidates = getUnpredictedDf(predictedPairsCandidate, uniqueCandidate, candidatePairs, True)
+    allCandidateGeneIds = set(uniqueCandidate["candidate_gene_id"])
+    predictedCandidateGeneIds = set(dfPrediction["candidate_gene_id"])
+    unpredictedCandidateGeneIds = allCandidateGeneIds - predictedCandidateGeneIds
+
+    allBaselineGeneIds = set(uniqueBaseline["baseline_gene_id"])
+    predictedBaselineGeneIds = set(dfPrediction["baseline_gene_id"])
+    unpredictedBaselineGeneIds = allBaselineGeneIds - predictedBaselineGeneIds
+
+
+    unpredictedCandidates = getUnpredictedDf(uniqueCandidate, unpredictedCandidateGeneIds, True)
     precisionDf = getPredictedDf(dfPrediction, unpredictedCandidates, True)
 
-    unpredictedBaselines = getUnpredictedDf(predictedPairsBaseline, uniqueBaseline, baselinePairs, False)
+    unpredictedBaselines = getUnpredictedDf(uniqueBaseline, unpredictedBaselineGeneIds, False)
     recallDf = getPredictedDf(dfPrediction, unpredictedBaselines, False)
 
     recallOrPrecision(recallDf, reader, strand, "gene_predicted_recall")
