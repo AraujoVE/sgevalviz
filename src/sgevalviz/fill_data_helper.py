@@ -231,7 +231,9 @@ class FillDataHelper:
             candidateDf["candidate_transcript_id"],
             candidateDf["candidate_cds_nucleotides"],
             candidateDf["candidate_cds_min"],
-            candidateDf["candidate_cds_max"]
+            candidateDf["candidate_cds_max"],
+            candidateDf["candidate_start_codon"],
+            candidateDf["candidate_stop_codon"]
         ))
         
         baselines = list(zip(
@@ -239,12 +241,14 @@ class FillDataHelper:
             baselineDf["baseline_transcript_id"],
             baselineDf["baseline_cds_nucleotides"],
             baselineDf["baseline_cds_min"],
-            baselineDf["baseline_cds_max"]
+            baselineDf["baseline_cds_max"],
+            baselineDf["baseline_start_codon"],
+            baselineDf["baseline_stop_codon"]
         ))
 
         results = {}
 
-        for (cand_gene, cand_tx, cand_cds, cand_min, cand_max), (base_gene, base_tx, base_cds, base_min, base_max) in product(candidates, baselines):
+        for (cand_gene, cand_tx, cand_cds, cand_min, cand_max, cand_start, cand_stop), (base_gene, base_tx, base_cds, base_min, base_max, base_start, base_stop) in product(candidates, baselines):
 
             
             score = self.getIntersectionSize(cand_min, cand_max, cand_cds, base_min, base_max, base_cds)
@@ -254,7 +258,7 @@ class FillDataHelper:
                 results[results_key] = {
                     "nucleotides_predicted": score,
                     "predicted": score > 0,
-                    "totally_predicted": (score == len(cand_cds) and score == len(base_cds)),
+                    "totally_predicted": (score == len(cand_cds) and score == len(base_cds) and cand_start == base_start and cand_stop == base_stop),
                     "candidate_gene_id": cand_gene,
                     "baseline_gene_id": base_gene if score > 0 else None,
                     "candidate_transcript_id": cand_tx,
