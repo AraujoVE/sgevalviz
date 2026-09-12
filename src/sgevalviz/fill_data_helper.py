@@ -140,12 +140,12 @@ class FillDataHelper:
             )
             .reset_index()
         )
+        self.dfTranscript["number_of_introns"] = self.dfTranscript["number_of_exons"] - 1
         #with pd.option_context("display.max_rows", None, "display.max_columns", None, "display.width", None, "display.expand_frame_repr", False):
         #    print("Main Df")
         #    print(self.df)
         #    print(self.dfTranscript)
 
-        zipped = list(zip(self.dfTranscript["intron_starts"], self.dfTranscript["intron_ends"]))
         self.dfTranscript["introns"] = [
            list(zip(s, e)) for s, e in zip(self.dfTranscript["intron_starts"], self.dfTranscript["intron_ends"])
         ]
@@ -163,11 +163,13 @@ class FillDataHelper:
 
 
         if self.isForwardStrand:
-            self.dfTranscript["frame"] = self.dfTranscript["min_exon_start"] % 3
+            self.dfTranscript["start_frame"] = self.dfTranscript["min_exon_start"] % 3
+            self.dfTranscript["end_frame"] = self.dfTranscript["max_exon_end"] % 3
             firstExons = [l[0] if l else (None, None) for l in exonList]
             lastExons  = [l[-1] if l else (None, None) for l in exonList]
         else:
-            self.dfTranscript["frame"] = self.dfTranscript["max_exon_end"] % 3
+            self.dfTranscript["start_frame"] = self.dfTranscript["max_exon_end"] % 3
+            self.dfTranscript["end_frame"] = self.dfTranscript["min_exon_start"] % 3
             firstExons = [l[-1] if l else (None, None) for l in exonList]
             lastExons  = [l[0] if l else (None, None) for l in exonList]
 
@@ -195,7 +197,8 @@ class FillDataHelper:
             "has_stop_codon": f"{self.groupType}_has_stop_codon",
             "gene_id": f"{self.groupType}_gene_id",
             "transcript_id": f"{self.groupType}_transcript_id",
-            "frame": f"{self.groupType}_frame",
+            "start_frame": f"{self.groupType}_start_frame",
+            "end_frame": f"{self.groupType}_end_frame",
             "introns": f"{self.groupType}_introns",
             "intron_starts": f"{self.groupType}_{'donnors' if self.isForwardStrand else 'acceptors'}",
             "intron_ends": f"{self.groupType}_{'acceptors' if self.isForwardStrand else 'donnors'}",
@@ -205,6 +208,7 @@ class FillDataHelper:
             "has_max_intron_retention": f"{self.groupType}_has_max_intron_retention",
             "gene_has_intron_retention": f"{self.groupType}_gene_has_intron_retention",
             "number_of_exons": f"{self.groupType}_number_of_exons",
+            "number_of_introns": f"{self.groupType}_number_of_introns",
             "exon_avg_size": f"{self.groupType}_exon_avg_size",
             "intron_avg_size": f"{self.groupType}_intron_avg_size",
             "number_of_cds_nucleotides": f"{self.groupType}_number_of_cds_nucleotides",
