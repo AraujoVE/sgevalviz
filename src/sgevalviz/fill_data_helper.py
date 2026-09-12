@@ -89,10 +89,6 @@ class FillDataHelper:
         lastIntronId = dfLocal.tail(1).index
         self.dfIntron.drop(lastIntronId, inplace=True)
 
-    def setNucleotidesData(self):
-        self.dfExon["nucleotide_size"] = (self.dfExon["region_end"] - self.dfExon["region_start"]) + 1
-        self.dfIntron["nucleotide_size"] = (self.dfIntron["region_end"] - self.dfIntron["region_start"]) + 1
-
     def unifyDf(self):
         df = pd.concat([self.dfExon, self.dfIntron]).sort_index().reset_index(drop=True)
         df = df.sort_values(by=['gene_id', 'transcript_id', 'region_start']).reset_index(drop=True)
@@ -104,6 +100,7 @@ class FillDataHelper:
 
         self.df = pd.concat([df, self.dfNotIntronOrExon]).sort_index().reset_index(drop=True)
         self.df['region_end'] = pd.to_numeric(self.df['region_end'], downcast='integer', errors='coerce')
+        self.df['nucleotide_size'] = (self.df['region_end'] - self.df['region_start']) + 1
 
     def setTranscriptDf(self):
         self.df = self.df.sort_values(by=["gene_id", "transcript_id", "region_start"])
@@ -238,7 +235,9 @@ class FillDataHelper:
             candidateDf["candidate_transcript_id"],
             candidateDf["candidate_cds_nucleotides"],
             candidateDf["candidate_cds_min"],
-            candidateDf["candidate_cds_max"]
+            candidateDf["candidate_cds_max"],
+            candidateDf["candidate_start_codon"],
+            candidateDf["candidate_stop_codon"]
         ))
         
         baselines = list(zip(
@@ -246,12 +245,14 @@ class FillDataHelper:
             baselineDf["baseline_transcript_id"],
             baselineDf["baseline_cds_nucleotides"],
             baselineDf["baseline_cds_min"],
-            baselineDf["baseline_cds_max"]
+            baselineDf["baseline_cds_max"],
+            baselineDf["baseline_start_codon"],
+            baselineDf["baseline_stop_codon"]
         ))
 
         results = {}
 
-        for (cand_gene, cand_tx, cand_cds, cand_min, cand_max), (base_gene, base_tx, base_cds, base_min, base_max) in product(candidates, baselines):
+        for (cand_gene, cand_tx, cand_cds, cand_min, cand_max, cand_start, cand_stop), (base_gene, base_tx, base_cds, base_min, base_max, base_start, base_stop) in product(candidates, baselines):
 
             
             score = self.getIntersectionSize(cand_min, cand_max, cand_cds, base_min, base_max, base_cds)
@@ -261,7 +262,7 @@ class FillDataHelper:
                 results[results_key] = {
                     "nucleotides_predicted": score,
                     "predicted": score > 0,
-                    "totally_predicted": (score == len(cand_cds) and score == len(base_cds)),
+                    "totally_predicted": (score == len(cand_cds) and score == len(base_cds) and cand_start == base_start and cand_stop == base_stop),
                     "candidate_gene_id": cand_gene,
                     "baseline_gene_id": base_gene if score > 0 else None,
                     "candidate_transcript_id": cand_tx,
@@ -320,7 +321,6 @@ class FillDataHelper:
         self.defineFirstLastSingleExon()
         self.defineIntronRetentionExon()
         self.dropLastIntron()
-        self.setNucleotidesData()
         self.unifyDf()
         self.setTranscriptDf()
 

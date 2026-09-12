@@ -2,6 +2,8 @@ import os
 import shutil
 import pandas as pd
 from typing import Literal
+import importlib.resources as resources
+import json
 
 class Reader:
     def __init__(self, saveFilesBasePath, candidatePath, baselinePath, extraArgs):
@@ -89,6 +91,9 @@ class Reader:
     
     def getSummedStatisticsFile(self):
         return f"{self.basePath}/statistics.csv"
+
+    def getJsonStatisticsFile(self):
+        return f"{self.basePath}/statistics.json"
 
     ####################################################################################################
     ####################################################################################################
