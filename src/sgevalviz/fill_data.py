@@ -306,5 +306,3 @@ def fillData(reader: Reader):
             findPrediction(reader, candidateDfHelper, baselineDfHelper, dfPrediction, region)
         else:
             addEmptyData(reader, baselineDfHelper, candidateDfHelper, hasBaseline, region)
-
-    #reader.setFinalResults()

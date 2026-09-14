@@ -138,10 +138,6 @@ class FillDataHelper:
             .reset_index()
         )
         self.dfTranscript["number_of_introns"] = self.dfTranscript["number_of_exons"] - 1
-        #with pd.option_context("display.max_rows", None, "display.max_columns", None, "display.width", None, "display.expand_frame_repr", False):
-        #    print("Main Df")
-        #    print(self.df)
-        #    print(self.dfTranscript)
 
         self.dfTranscript["introns"] = [
            list(zip(s, e)) for s, e in zip(self.dfTranscript["intron_starts"], self.dfTranscript["intron_ends"])
