@@ -34,8 +34,7 @@ class Reader:
             os.makedirs(folder,exist_ok=True)
 
         with open(self.getStatisticsFile(), "w") as f: f.write("")
-        with open(self.getSummedStatisticsFile(), "w") as f: f.write("")
-        statisticsDf = pd.DataFrame(columns=["identifier", "values", "region", "is_percentage", "has_dividend_divisor", "dividend_values", "divisor_values"])
+        statisticsDf = pd.DataFrame(columns=["identifier", "region", "is_percentage", "has_dividend_divisor", "has_values_as_list_type", "values", "dividend_values", "divisor_values"])
         statisticsDf.to_csv(self.getStatisticsFile(),index=False)
 
     def initializeChromosomeFolder(self, chromosomeId):
@@ -88,12 +87,6 @@ class Reader:
 
     def getStatisticsFile(self):
         return f"{self.basePath}/raw_statistics.csv"
-    
-    def getSummedStatisticsFile(self):
-        return f"{self.basePath}/statistics.csv"
-
-    def getJsonStatisticsFile(self):
-        return f"{self.basePath}/statistics.json"
 
     ####################################################################################################
     ####################################################################################################
@@ -233,7 +226,7 @@ class Reader:
 #    
 #        newDf.to_csv(statisticsOutputPath, index=False)
 
-    def statisticsUpdate(self, strings, values, isPercentage, region, hasDividendDivisor=False, dividendValues=[], divisorValues=[]):
+    def statisticsUpdateOld(self, strings, values, isPercentage, region, hasDividendDivisor=False, dividendValues=[], divisorValues=[]):
         strValues = [str(v) for v in values]
         strDividendValues = [str(v) for v in dividendValues]
         strDivisorValues = [str(v) for v in divisorValues]
@@ -245,6 +238,29 @@ class Reader:
             "has_dividend_divisor": (1 if hasDividendDivisor == True else 0),
             "dividend_values": ";".join(strDividendValues),
             "divisor_values": ";".join(strDivisorValues)
+        }])
+
+        statisticsPath = self.getStatisticsFile()
+        statisticsDf = pd.read_csv(statisticsPath)
+        statisticsDf = pd.concat([statisticsDf, df], ignore_index=True)
+        statisticsDf.to_csv(statisticsPath, index=False)
+
+
+    def statisticsUpdate(self, strings, region, isPercentage, hasDividendDivisor, hasListValues, values, dividendValues, divisorValues):
+        strConversion = lambda x: str(x) if isPercentage else ";".join([str(v) for v in x])
+
+        strValues = strConversion(values)        
+        strDividendValues = strConversion(dividendValues)
+        strDivisorValues = strConversion(divisorValues)
+        df = pd.DataFrame([{
+            "identifier": '__'.join(strings),
+            "region": region,
+            "is_percentage": (1 if isPercentage == True else 0),
+            "has_dividend_divisor": (1 if hasDividendDivisor == True else 0),
+            "has_values_as_list_type": (1 if hasListValues == True else 0),
+            "values": strValues,
+            "dividend_values": strDividendValues,
+            "divisor_values": strDivisorValues
         }])
 
         statisticsPath = self.getStatisticsFile()
