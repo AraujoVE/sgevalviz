@@ -34,4 +34,5 @@ def main():
     run(sys.argv)
 
 if __name__ == "__main__":
+    #TODO: Check for cases with dfs with size 0
     main()

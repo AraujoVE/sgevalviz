@@ -35,7 +35,7 @@ class Reader:
 
         with open(self.getStatisticsFile(), "w") as f: f.write("")
         with open(self.getSummedStatisticsFile(), "w") as f: f.write("")
-        statisticsDf = pd.DataFrame(columns=["identifier", "value", "region", "is_percentage"])
+        statisticsDf = pd.DataFrame(columns=["identifier", "values", "region", "is_percentage", "has_dividend_divisor", "dividend_values", "divisor_values"])
         statisticsDf.to_csv(self.getStatisticsFile(),index=False)
 
     def initializeChromosomeFolder(self, chromosomeId):
@@ -233,11 +233,19 @@ class Reader:
 #    
 #        newDf.to_csv(statisticsOutputPath, index=False)
 
-    def statisticsUpdate(self, strings, values, isPercentage, region):
-        df = pd.DataFrame([{"value": values}])
-        df["identifier"] = '__'.join(strings)
-        df["region"] = region
-        df["is_percentage"] = (1 if isPercentage == True else 0)
+    def statisticsUpdate(self, strings, values, isPercentage, region, hasDividendDivisor=False, dividendValues=[], divisorValues=[]):
+        strValues = [str(v) for v in values]
+        strDividendValues = [str(v) for v in dividendValues]
+        strDivisorValues = [str(v) for v in divisorValues]
+        df = pd.DataFrame([{
+            "values": ";".join(strValues),
+            "identifier": '__'.join(strings),
+            "region": region,
+            "is_percentage": (1 if isPercentage == True else 0),
+            "has_dividend_divisor": (1 if hasDividendDivisor == True else 0),
+            "dividend_values": ";".join(strDividendValues),
+            "divisor_values": ";".join(strDivisorValues)
+        }])
 
         statisticsPath = self.getStatisticsFile()
         statisticsDf = pd.read_csv(statisticsPath)

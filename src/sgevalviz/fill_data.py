@@ -52,8 +52,13 @@ def divideByTotallyAndPartiallyPredicted(strand, reader: Reader, predictedDf, ba
         reader.statisticsUpdate([curStrand, "ratio_of_number_of_nucleotides_in_prediction_per_reference"], nucleotideRatiosList, False, region)
 
     for predType, df in dfs.items():
-        intronRetentionList = boolTo01List(df["baseline_gene_has_intron_retention"])
-        maxIntronRetentionList = boolTo01List(df["baseline_gene_has_intron_retention"] & df["baseline_has_max_intron_retention"])
+        hasIntronRetentionDf = df[df["baseline_gene_has_intron_retention"]].copy()
+        if len(hasIntronRetentionDf) == 0:
+            intronRetentionList = []
+            maxIntronRetentionList = []
+        else:
+            intronRetentionList = boolTo01List(hasIntronRetentionDf["baseline_has_intron_retention"])
+            maxIntronRetentionList = boolTo01List(hasIntronRetentionDf["baseline_has_max_intron_retention"])
 
         hasLeastExonsInVariants = ((df["baseline_min_exon_qtty"] == df["baseline_number_of_exons"]) & (df["baseline_transcripts_qtty"] > 1))
         hasLeastExonsList = boolTo01List(hasLeastExonsInVariants)
@@ -63,7 +68,7 @@ def divideByTotallyAndPartiallyPredicted(strand, reader: Reader, predictedDf, ba
 
         numberOfExonsList = (df["baseline_number_of_exons"]).tolist()
         sizeOfExonsList = (df["baseline_exon_avg_size"]).tolist()
-        sizeOfIntronsList = (df["baseline_intron_avg_size"]).tolist()
+        sizeOfIntronsList = (df["baseline_intron_avg_size"].dropna()).tolist()
 
         for curStrand in [strand, "general"]:
             for pred in [predType, "predicted_gene"]:
@@ -90,6 +95,7 @@ def getUnpredictedDf(baseDf, unpredictedGeneId, isCandidate):
     unpredictedDf["nucleotides_predicted"] = 0
     unpredictedDf["predicted"] = False
     unpredictedDf["totally_predicted"] = False
+    unpredictedDf["predicted"] = False
     unpredictedDf["start_codon_predicted"] = False 
     unpredictedDf["stop_codon_predicted"] = False 
     unpredictedDf["start_and_stop_codon_predicted"] = False 
@@ -102,10 +108,10 @@ def getUnpredictedDf(baseDf, unpredictedGeneId, isCandidate):
     unpredictedDf["introns_predicted"] = 0
 
     unpredictedDf = unpredictedDf[[
-        f"{baseName}_gene_id", f"{baseName}_transcript_id", "totally_predicted",
+        f"{baseName}_gene_id", f"{baseName}_transcript_id", "totally_predicted", "predicted",
         "nucleotides_predicted", f"{baseName}_number_of_cds_nucleotides",
         "start_codon_predicted", f"{baseName}_has_start_codon", "stop_codon_predicted", f"{baseName}_has_stop_codon", "start_and_stop_codon_predicted",
-        "introns_predicted", "exons_predicted", f"{baseName}_number_of_exons",
+        "introns_predicted", "exons_predicted", f"{baseName}_number_of_exons", f"{baseName}_number_of_introns",
         "first_exon_predicted", "last_exon_predicted", "first_and_last_exon_predicted",
         "donnors_predicted", "acceptors_predicted"
     ]].copy()
@@ -115,10 +121,10 @@ def getUnpredictedDf(baseDf, unpredictedGeneId, isCandidate):
 def getPredictedDf(dfPrediction, unpredictedDf, isCandidate):
     baseName = "candidate" if isCandidate else "baseline"
     predictedData = dfPrediction[[
-        f"{baseName}_gene_id", f"{baseName}_transcript_id", "totally_predicted",
+        f"{baseName}_gene_id", f"{baseName}_transcript_id", "totally_predicted", "predicted",
         "nucleotides_predicted", f"{baseName}_number_of_cds_nucleotides",
         "start_codon_predicted", f"{baseName}_has_start_codon", "stop_codon_predicted", f"{baseName}_has_stop_codon", "start_and_stop_codon_predicted",
-        "introns_predicted", "exons_predicted", f"{baseName}_number_of_exons",
+        "introns_predicted", "exons_predicted", f"{baseName}_number_of_exons",  f"{baseName}_number_of_introns",
         "first_exon_predicted", "last_exon_predicted", "first_and_last_exon_predicted",
         "donnors_predicted", "acceptors_predicted"
     ]].copy()
@@ -136,32 +142,20 @@ def getPredictedDf(dfPrediction, unpredictedDf, isCandidate):
     return concatenatedDf
 
 def noMultiExonStatistics(df, reader: Reader, starterText, strand, recOrPre, singleOrMultipleString, region):
-    totallyPredictedGenes = df.groupby(f"{starterText}_gene_id", as_index=False)["totally_predicted"].any()
-
-    totallyPredictedGenesList = boolTo01List(totallyPredictedGenes["totally_predicted"])
-    totalNucleotidesList = boolTo01List(df[f"{starterText}_number_of_cds_nucleotides"])
-    totalStartCodonList = boolTo01List(df[f"{starterText}_has_start_codon"])
-    totalStopCodonList = boolTo01List(df[f"{starterText}_has_stop_codon"])
-    totalStartAndStopCodonList = boolTo01List(df[f"{starterText}_has_start_codon"] & df[f"{starterText}_has_stop_codon"])
-
-    for curStrand in [strand, "general"]:
-        for singleOrMultiple in [singleOrMultipleString, "single_or_multiple_exon"]:
-            reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "gene"], totallyPredictedGenesList, True, region)
-            reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "nucleotide"], totalNucleotidesList, True, region)
-            reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "start_codon"], totalStartCodonList, True, region)
-            reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "stop_codon"], totalStopCodonList, True, region)
-            reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "start_and_stop_codon"], totalStartAndStopCodonList, True, region)
-
-
-def noMultiExonStatistics(df, reader: Reader, starterText, strand, recOrPre, singleOrMultipleString, region):
     #Gene Recall/Precision takes into account only per gene_id
     totallyPredictedGenes = df.groupby(f"{starterText}_gene_id", as_index=False)["totally_predicted"].any()
     totallyPredictedGenesList = boolTo01List(totallyPredictedGenes["totally_predicted"])
 
     #Nucleotides/Exons Recall/Precision only takes into account predicted ones
     hasPredictionDf = df[df["predicted"]]
+
     nucleotidesBool = (hasPredictionDf["nucleotides_predicted"] / hasPredictionDf[f"{starterText}_number_of_cds_nucleotides"]).tolist()
+    nucleotidesDividend = hasPredictionDf["nucleotides_predicted"].tolist()
+    nucleotidesDivisor = hasPredictionDf[f"{starterText}_number_of_cds_nucleotides"].tolist()
+
     exonsBool = (hasPredictionDf["exons_predicted"] / hasPredictionDf[f"{starterText}_number_of_exons"]).tolist()
+    exonsDividend = hasPredictionDf["exons_predicted"].tolist()
+    exonsDivisor = hasPredictionDf[f"{starterText}_number_of_exons"].tolist()
 
 
     #Start/Stop Codon Recall/Precision only takes into account when there IS the start/stop codon prediction
@@ -175,37 +169,42 @@ def noMultiExonStatistics(df, reader: Reader, starterText, strand, recOrPre, sin
     for curStrand in [strand, "general"]:
         for singleOrMultiple in [singleOrMultipleString, "single_or_multiple_exon"]:
             reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "gene"], totallyPredictedGenesList, True, region)
-            reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "nucleotide"], nucleotidesBool, True, region)
-            reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "exon"], exonsBool, True, region)
+            reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "nucleotide"], nucleotidesBool, True, region, nucleotidesDividend, nucleotidesDivisor)
+            reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "exon"], exonsBool, True, region, exonsDividend, exonsDivisor)
             reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "start_codon"], startCodonBool, True, region)
             reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "stop_codon"], stopCodonBool, True, region)
             reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "start_and_stop_codon"], startAndStopCodonBool, True, region)
-
-
-
 
 def onlyMultiExonStatistics(df, reader: Reader, starterText, strand, recOrPre, region):
     hasPredictionDf = df[df["predicted"]].copy()
 
     #Recall/Precision only takes into account predicted ones
     intronsBool = (hasPredictionDf["introns_predicted"] / hasPredictionDf[f"{starterText}_number_of_introns"]).tolist()
+    intronsDividend = hasPredictionDf["introns_predicted"].tolist()
+
     firstExonsBool = boolTo01List(hasPredictionDf["first_exon_predicted"])
     lastExonsBool = boolTo01List(hasPredictionDf["last_exon_predicted"])
     firstAndLastExonsBool = boolTo01List(hasPredictionDf["first_exon_predicted"] & hasPredictionDf["last_exon_predicted"])
+
     donnorsBool = (hasPredictionDf["donnors_predicted"] / hasPredictionDf[f"{starterText}_number_of_introns"]).tolist()
+    donnorsDividend = hasPredictionDf["donnors_predicted"].tolist()
+
     acceptorsBool = (hasPredictionDf["acceptors_predicted"] / hasPredictionDf[f"{starterText}_number_of_introns"]).tolist()
+    acceptorsDividend = hasPredictionDf["acceptors_predicted"].tolist()
+
+    intronsDonnorAcceptorDivisor = hasPredictionDf[f"{starterText}_number_of_introns"].tolist()
 
     for curStrand in [strand, "general"]:
         for singleOrMultiple in ["multiple_exon", "single_or_multiple_exon"]:
-            reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "intron"], intronsBool, True, region)
+            reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "intron"], intronsBool, True, region, intronsDividend, intronsDonnorAcceptorDivisor)
             reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "first_exon"], firstExonsBool, True, region)
             reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "last_exon"], lastExonsBool, True, region)
             reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "first_and_last_exon"], firstAndLastExonsBool, True, region)
-            reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "donnors"], donnorsBool, True, region)
-            reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "acceptors"], acceptorsBool, True, region)
+            reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "donnors"], donnorsBool, True, region, donnorsDividend, intronsDonnorAcceptorDivisor)
+            reader.statisticsUpdate([curStrand, singleOrMultiple, recOrPre, "acceptors"], acceptorsBool, True, region, acceptorsDividend, intronsDonnorAcceptorDivisor)
 
 def recallOrPrecision(df, reader: Reader, strand, recOrPre, region):
-    candidateOrBaseline = "baseline" if recOrPre == "gene_predicted_recall" else "candidate"
+    candidateOrBaseline = "baseline" if recOrPre == "recall_of" else "candidate"
     singleExonOnlyDf = df[df[f"{candidateOrBaseline}_number_of_exons"] == 1]
     multipleExonOnlyDf = df[df[f"{candidateOrBaseline}_number_of_exons"] > 1]
 
@@ -286,6 +285,7 @@ def fillData(reader: Reader):
     for region, chromosomePath in enumerate(chromosomeFolders):
         hasCandidate, hasBaseline = reader.hasGtfFile(chromosomePath, "candidate"), reader.hasGtfFile(chromosomePath, "baseline")
         hasBothFiles = hasCandidate and hasBaseline
+        baselineDfHelper, candidateDfHelper = None, None
         if not (hasBaseline or hasCandidate):
             continue
 

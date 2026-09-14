@@ -178,8 +178,9 @@ class FillDataHelper:
             .transform("max")
         )
 
-        self.dfTranscript["has_max_intron_retention"] = self.dfTranscript["max_intron_retention"] == self.dfTranscript["intron_retention_exons"]
+        self.dfTranscript["has_max_intron_retention"] = (self.dfTranscript["max_intron_retention"] == self.dfTranscript["intron_retention_exons"])
         self.dfTranscript["gene_has_intron_retention"] = self.dfTranscript["max_intron_retention"] > 0
+        self.dfTranscript["has_intron_retention"] = (self.dfTranscript["gene_has_intron_retention"]) & (self.dfTranscript["intron_retention_exons"] > 0)
 
         self.dfTranscript["has_start_codon"] = self.dfTranscript["start_codon"].notna()
         self.dfTranscript["has_stop_codon"] = self.dfTranscript["stop_codon"].notna()
@@ -203,6 +204,7 @@ class FillDataHelper:
             "first_exon": f"{self.groupType}_first_exon",
             "last_exon": f"{self.groupType}_last_exon",
             "has_max_intron_retention": f"{self.groupType}_has_max_intron_retention",
+            "has_intron_retention": f"{self.groupType}_has_intron_retention",
             "gene_has_intron_retention": f"{self.groupType}_gene_has_intron_retention",
             "number_of_exons": f"{self.groupType}_number_of_exons",
             "number_of_introns": f"{self.groupType}_number_of_introns",
