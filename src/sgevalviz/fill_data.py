@@ -266,6 +266,7 @@ def findPrediction(reader: Reader, candidateDfHelper: FillDataHelper, baselineDf
     for curStrand in [strand, "general"]:
         reader.statisticsUpdate([curStrand, "genes_ignored"], region, True, True, False, prediction, unpredictedBaselineGenes, allBaselineGenes)
         reader.statisticsUpdate([curStrand, "no_reference_on_prediction_region"], region, True, True, False, 0, 0, 1)
+        reader.statisticsUpdate([curStrand, "no_prediction_on_reference_region"], region, True, True, False, 0, 0, 1)
 
     dfPrediction = dfPrediction[dfPrediction["predicted"]]
     #statisticsUpdate__StrandRefGenePartPred__Value
@@ -281,6 +282,7 @@ def addEmptyData(reader: Reader, baselineDfHelper: FillDataHelper, candidateDfHe
         allBaselineGenes = len(set(baselineDfHelper.getDf()["gene_id"].dropna().unique()))
         for curStrand in [strand, "general"]:
             reader.statisticsUpdate([curStrand, "genes_ignored"], region, True, True, False, allBaselineGenes, allBaselineGenes, allBaselineGenes)
+            reader.statisticsUpdate([curStrand, "no_prediction_on_reference_region"], region, True, True, False, 1, 1, 1)
     else:
         for curStrand in [strand, "general"]:
             reader.statisticsUpdate([curStrand, "no_reference_on_prediction_region"], region, True, True, False, 1, 1, 1)
